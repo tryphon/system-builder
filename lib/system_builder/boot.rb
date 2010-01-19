@@ -99,7 +99,7 @@ class SystemBuilder::DebianBoot
     # TODO see if this step is really needed
     SystemBuilder::ProcConfigurator.new do |chroot|    
       puts "* install apt keys"
-      chroot.image.install "/etc/apt", "/etc/apt/trusted.gpg"
+      #chroot.image.install "/etc/apt", "/etc/apt/trusted.gpg"
       chroot.sudo "apt-get update"
     end
   end
