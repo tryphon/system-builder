@@ -18,7 +18,7 @@ class SystemBuilder::DebianBoot
     @mirror = @@default_mirror
     @architecture = :i386
     @exclude = []
-    @include = []
+    @include = [ "debian-archive-keyring" ]
 
     # kernel can't be installed by debootstrap
     @configurators = 
@@ -98,8 +98,6 @@ class SystemBuilder::DebianBoot
   def apt_configurator
     # TODO see if this step is really needed
     SystemBuilder::ProcConfigurator.new do |chroot|    
-      puts "* install apt keys"
-      chroot.image.install "/etc/apt", "/etc/apt/trusted.gpg"
       chroot.sudo "apt-get update"
     end
   end
