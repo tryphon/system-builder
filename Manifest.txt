@@ -25,7 +25,7 @@ script/destroy
 script/generate
 spec/spec.opts
 spec/spec_helper.rb
-spec/system-builder_cli_spec.rb
-spec/system-builder_spec.rb
+spec/system_builder/boot_spec.rb
+spec/system_builder/cli_spec.rb
 system-builder.gemspec
 tasks/rspec.rake

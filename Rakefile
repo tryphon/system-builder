@@ -10,10 +10,11 @@ Hoe.plugin :cucumberfeatures
 
 # Generate all the Rake tasks
 # Run 'rake -T' to see list of generated tasks (from gem root directory)
-$hoe = Hoe.spec 'system-builder' do
+Hoe.spec 'system-builder' do
   self.version = SystemBuilder::VERSION
-  self.developer 'Alban Peignier', 'alban.peignier@free.fr'
+  self.developer 'Alban Peignier', 'alban@tryphon.eu'
   self.rubyforge_name       = self.name # TODO this is default value
+  self.url = "http://projects.tryphon.eu/system-builder"
   # self.extra_deps         = [['activesupport','>= 2.0.2']]
 end
 
