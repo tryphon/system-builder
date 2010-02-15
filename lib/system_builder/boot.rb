@@ -27,6 +27,7 @@ class SystemBuilder::DebianBoot
         kernel_configurator, 
         fstab_configurator, 
         timezone_configurator,
+        resolvconf_configurator,
         policyrc_configurator
       ]
     @cleaners = [ apt_cleaner, policyrc_cleaner ]
@@ -92,6 +93,16 @@ class SystemBuilder::DebianBoot
       puts "* define timezone"
       # Use same timezone than build machine
       chroot.image.install "/etc/", "/etc/timezone", "/etc/localtime"
+    end
+  end
+
+  def resolvconf_configurator
+    SystemBuilder::ProcConfigurator.new do |chroot|
+      unless chroot.image.exists?("/etc/resolv.conf")
+        puts "* define resolv.conf"
+        # Use the same resolv.conf than build machine
+        chroot.image.install "/etc/", "/etc/resolv.conf" 
+      end
     end
   end
 
@@ -195,6 +206,10 @@ class SystemBuilder::DebianBoot
 
     def expand_path(path)
       File.join(@root,path)
+    end
+
+    def exists?(path)
+      File.exists? expand_path(path)
     end
 
   end
