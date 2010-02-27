@@ -90,7 +90,7 @@ class SystemBuilder::DiskImage
 
   def sync_root_fs
     mount_root_fs do |mount_dir|
-      FileUtils::sudo "rsync -a --delete #{boot.root}/ #{mount_dir}"
+      FileUtils::sudo "rsync -a --delete --exclude='boot/**' #{boot.root}/ #{mount_dir}"
     end
     FileUtils.touch file
   end
