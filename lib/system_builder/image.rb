@@ -46,7 +46,7 @@ class SystemBuilder::DiskImage
     loop_device = "/dev/loop0"
     begin
       FileUtils::sudo "losetup -o #{root_fs_offset} #{loop_device} #{file}"
-      FileUtils::sudo "mke2fs -L #{fs_label} -jqF #{loop_device} #{root_fs_block_size}"
+      FileUtils::sudo "mke2fs -L #{root_fs_label} -jqF #{loop_device} #{root_fs_block_size}"
     ensure
       FileUtils::sudo "losetup -d #{loop_device}"
     end
@@ -56,8 +56,7 @@ class SystemBuilder::DiskImage
     loop_device = "/dev/loop0"
     begin
       FileUtils::sudo "losetup -o #{boot_fs_offset} #{loop_device} #{file}"
-      # FileUtils::sudo "mke2fs -L #{fs_label} -jqF #{loop_device} #{boot_fs_block_size}"
-      FileUtils::sudo "mkdosfs -v -F 32 #{loop_device} #{boot_fs_block_size}"
+      FileUtils::sudo "mkdosfs -v -F 32 -n #{boot_fs_label} #{loop_device} #{boot_fs_block_size}"
     ensure
       FileUtils::sudo "losetup -d #{loop_device}"
     end
@@ -104,7 +103,7 @@ class SystemBuilder::DiskImage
   end
 
   def install_syslinux_files(options = {})
-    root = (options[:root] or "LABEL=#{fs_label}")
+    root = (options[:root] or "LABEL=#{root_fs_label}")
     version = (options[:version] or Time.now.strftime("%Y%m%d%H%M"))
 
     boot.image do |image|
@@ -148,7 +147,7 @@ class SystemBuilder::DiskImage
   end
 
   def install_grub_menu(options = {})
-    root = (options[:root] or "LABEL=#{fs_label}")
+    root = (options[:root] or "LABEL=#{root_fs_label}")
     version = (options[:version] or Time.now.strftime("%Y%m%d%H%M"))
 
     boot.image.open("/boot/grub/menu.lst") do |f|
@@ -194,8 +193,12 @@ class SystemBuilder::DiskImage
     (free_sectors + boot_fs_sector_count) * 512
   end
 
-  def fs_label
+  def root_fs_label
     "root"
+  end
+
+  def boot_fs_label
+    "boot"
   end
 
 end

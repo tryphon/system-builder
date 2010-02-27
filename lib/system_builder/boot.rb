@@ -81,6 +81,7 @@ class SystemBuilder::DebianBoot
     SystemBuilder::ProcConfigurator.new do |chroot|
       puts "* create fstab"
       chroot.image.open("/etc/fstab") do |f|
+        f.puts "LABEL=boot /boot vfat defaults,noatime 0 1"
         %w{/tmp /var/run /var/log /var/lock /var/tmp}.each do |directory|
           f.puts "tmpfs #{directory} tmpfs defaults,noatime 0 0"
         end
