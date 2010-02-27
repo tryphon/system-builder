@@ -38,13 +38,8 @@ class SystemBuilder::Task < Rake::TaskLib
         required_packages << "sudo"
         required_packages << "debootstrap"
         required_packages << "rsync"
-
-        if system "dpkg -l extlinux > /dev/null"
-          required_packages << "extlinux"
-          required_packages << "syslinux-common"
-        else
-          required_packages << "syslinux"
-        end
+        required_packages << "dosfstools"
+        required_packages << "syslinux"
         
         FileUtils.sudo "apt-get install #{required_packages.join(' ')}"
       end

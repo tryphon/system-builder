@@ -209,7 +209,8 @@ class SystemBuilder::DebianBoot
     end
 
     def exists?(path)
-      File.exists? expand_path(path)
+      path = expand_path(path)
+      File.exists?(path) or File.symlink?(path)
     end
 
   end

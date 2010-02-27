@@ -18,13 +18,17 @@ class SystemBuilder::DiskImage
     if file_creation
       create_file
       create_partition_table
+
+      format_boot_fs
       format_root_fs
     end
 
-    install_extlinux_files
+    install_syslinux_files
 
+    sync_boot_fs
     sync_root_fs
-    install_extlinux
+
+    install_syslinux
 
     self
   end
@@ -35,14 +39,25 @@ class SystemBuilder::DiskImage
 
   def create_partition_table
     # Partition must be bootable for syslinux
-    FileUtils::sh "echo '63,,L,*' | /sbin/sfdisk --no-reread -uS -H16 -S63 #{file}"
+    FileUtils::sh "echo -e '#{free_sectors},#{boot_fs_sector_count},b,*\n#{boot_fs_sector_count+free_sectors},,L,' | /sbin/sfdisk --no-reread -uS -H16 -S63 #{file}"
   end
-
+ 
   def format_root_fs
     loop_device = "/dev/loop0"
     begin
-      FileUtils::sudo "losetup -o #{fs_offset} #{loop_device} #{file}"
-      FileUtils::sudo "mke2fs -L #{fs_label} -jqF #{loop_device} #{fs_block_size}"
+      FileUtils::sudo "losetup -o #{root_fs_offset} #{loop_device} #{file}"
+      FileUtils::sudo "mke2fs -L #{fs_label} -jqF #{loop_device} #{root_fs_block_size}"
+    ensure
+      FileUtils::sudo "losetup -d #{loop_device}"
+    end
+  end
+
+  def format_boot_fs
+    loop_device = "/dev/loop0"
+    begin
+      FileUtils::sudo "losetup -o #{boot_fs_offset} #{loop_device} #{file}"
+      # FileUtils::sudo "mke2fs -L #{fs_label} -jqF #{loop_device} #{boot_fs_block_size}"
+      FileUtils::sudo "mkdosfs -v -F 32 #{loop_device} #{boot_fs_block_size}"
     ensure
       FileUtils::sudo "losetup -d #{loop_device}"
     end
@@ -54,7 +69,20 @@ class SystemBuilder::DiskImage
     FileUtils::mkdir_p mount_dir
 
     begin
-      FileUtils::sudo "mount -o loop,offset=#{fs_offset} #{file} #{mount_dir}"
+      FileUtils::sudo "mount -o loop,offset=#{root_fs_offset} #{file} #{mount_dir}"
+      yield mount_dir
+    ensure
+      FileUtils::sudo "umount #{mount_dir}"
+    end
+  end
+
+  def mount_boot_fs(&block)
+    # TODO use a smarter mount_dir
+    mount_dir = "/tmp/mount_boot_fs"
+    FileUtils::mkdir_p mount_dir
+
+    begin
+      FileUtils::sudo "mount -o loop,offset=#{boot_fs_offset} #{file} #{mount_dir}"
       yield mount_dir
     ensure
       FileUtils::sudo "umount #{mount_dir}"
@@ -68,32 +96,31 @@ class SystemBuilder::DiskImage
     FileUtils.touch file
   end
 
-  def install_extlinux_files(options = {})
+  def sync_boot_fs
+    mount_boot_fs do |mount_dir|
+      FileUtils::sudo "rsync -a --delete #{boot.root}/boot/ #{mount_dir}"
+    end
+    FileUtils.touch file
+  end
+
+  def install_syslinux_files(options = {})
     root = (options[:root] or "LABEL=#{fs_label}")
     version = (options[:version] or Time.now.strftime("%Y%m%d%H%M"))
 
     boot.image do |image|
-      image.mkdir "/boot/extlinux"
+      image.mkdir "/boot/"
 
-      boot.image.open("/boot/extlinux/extlinux.conf") do |f|
-        f.puts "DEFAULT linux"
-        f.puts "LABEL linux"
-        f.puts "SAY Now booting #{version} from syslinux ..."
-        f.puts "KERNEL /vmlinuz"
-        f.puts "APPEND ro root=#{root} initrd=/initrd.img"
+      image.open("/boot/syslinux.cfg") do |f|
+        f.puts "default linux"
+        f.puts "label linux"
+        f.puts "kernel #{readlink_boot_file('vmlinuz')}"
+        f.puts "append ro root=#{root} initrd=#{readlink_boot_file('initrd.img')}"
       end
     end
   end
 
-  def install_grub_files(options = {})
-    stage_files = Array(options[:stage_files]).flatten
-
-    boot.image do |image|
-      image.mkdir "/boot/grub"
-
-      install_grub_menu options
-      image.install "boot/grub", stage_files.collect { |f| '/usr/lib/grub/**/' + f }
-    end
+  def readlink_boot_file(boot_file)
+    File.basename(%x{readlink #{boot.root}/#{boot_file}}.strip)
   end
 
   def install_extlinux
@@ -103,6 +130,11 @@ class SystemBuilder::DiskImage
     end
     # TODO install mbr only when needed
     # install MBR
+    FileUtils::sh "dd if=/usr/lib/syslinux/mbr.bin of=#{file} conv=notrunc"
+  end
+
+  def install_syslinux
+    FileUtils::sh "syslinux -o #{boot_fs_offset} #{file}"
     FileUtils::sh "dd if=/usr/lib/syslinux/mbr.bin of=#{file} conv=notrunc"
   end
 
@@ -136,13 +168,30 @@ class SystemBuilder::DiskImage
     end
   end
 
-  def fs_block_size
+  def root_fs_block_size
     linux_partition_info = `/sbin/sfdisk -l #{file}`.scan(%r{#{file}.*Linux}).first
+    linux_partition_info.split[4].to_i
+  end
+
+  def free_sectors
+    64
+  end
+
+  def boot_fs_offset
+    free_sectors * 512
+  end
+
+  def boot_fs_block_size
+    linux_partition_info = `/sbin/sfdisk -l #{file}`.scan(%r{#{file}.*W95 FAT32}).first
     linux_partition_info.split[5].to_i
   end
 
-  def fs_offset
-    32256
+  def boot_fs_sector_count
+    (120 * 1008) - free_sectors # end of partition on a multiple of 1008 (cylinder size)
+  end
+
+  def root_fs_offset
+    (free_sectors + boot_fs_sector_count) * 512
   end
 
   def fs_label
