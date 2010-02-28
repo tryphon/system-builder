@@ -192,7 +192,7 @@ class SystemBuilder::DebianBoot
     def rsync(target, *sources)
       options = (Hash === sources.last ? sources.pop : {})
       rsync_options = options.collect { |k,v| "--#{k}=#{v}" }
-      FileUtils::sudo "rsync -av #{rsync_options.join(' ')} #{sources.join(' ')} #{expand_path(target)}"
+      FileUtils::sudo "rsync -a #{rsync_options.join(' ')} #{sources.join(' ')} #{expand_path(target)}"
     end
 
     def open(filename, &block) 

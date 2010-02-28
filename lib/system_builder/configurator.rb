@@ -35,6 +35,9 @@ module SystemBuilder
         chroot.image.mkdir "/tmp/puppet"
 
         chroot.image.rsync "/tmp/puppet", "#{manifest}/manifests", "#{manifest}/files", :exclude => "*~"
+        Dir.glob("#{manifest}/modules/*") do |module_dir|
+          chroot.image.rsync "/tmp/puppet", "#{module_dir}/manifests", "#{module_dir}/files", :exclude => "*~"
+        end
         chroot.sudo "puppet tmp/puppet/manifests/site.pp"
       end
     end
