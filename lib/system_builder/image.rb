@@ -122,41 +122,9 @@ class SystemBuilder::DiskImage
     File.basename(%x{readlink #{boot.root}/#{boot_file}}.strip)
   end
 
-  def install_extlinux
-    # TODO install extlinux.sys only when needed
-    mount_root_fs do |mount_dir|
-      FileUtils::sudo "extlinux --install -H16 -S63 #{mount_dir}/boot/extlinux"
-    end
-    # TODO install mbr only when needed
-    # install MBR
-    FileUtils::sh "dd if=/usr/lib/syslinux/mbr.bin of=#{file} conv=notrunc"
-  end
-
   def install_syslinux
     FileUtils::sh "syslinux -o #{boot_fs_offset} #{file}"
     FileUtils::sh "dd if=/usr/lib/syslinux/mbr.bin of=#{file} conv=notrunc"
-  end
-
-  def install_grub
-    IO.popen("sudo grub --device-map=/dev/null","w") { |grub| 
-      grub.puts "device (hd0) #{file}"
-      grub.puts "root (hd0,0)"
-      grub.puts "setup (hd0)"
-      grub.puts "quit"
-    }
-  end
-
-  def install_grub_menu(options = {})
-    root = (options[:root] or "LABEL=#{root_fs_label}")
-    version = (options[:version] or Time.now.strftime("%Y%m%d%H%M"))
-
-    boot.image.open("/boot/grub/menu.lst") do |f|
-      f.puts "default 0"
-      f.puts "timeout 2"
-      f.puts "title #{version} Debian GNU/Linux"
-      f.puts "kernel /vmlinuz root=#{root} ro"
-      f.puts "initrd /initrd.img"
-    end
   end
 
   def convert(export_file, options = {})
