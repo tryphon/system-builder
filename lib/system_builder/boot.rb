@@ -190,6 +190,7 @@ class SystemBuilder::DebianBoot
     end
 
     def rsync(target, *sources)
+      sources = sources.flatten
       options = (Hash === sources.last ? sources.pop : {})
       rsync_options = options.collect { |k,v| "--#{k}=#{v}" }
       FileUtils::sudo "rsync -a #{rsync_options.join(' ')} #{sources.join(' ')} #{expand_path(target)}"
