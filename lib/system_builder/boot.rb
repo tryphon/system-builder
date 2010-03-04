@@ -110,7 +110,7 @@ class SystemBuilder::DebianBoot
   def apt_configurator
     # TODO see if this step is really needed
     SystemBuilder::ProcConfigurator.new do |chroot|    
-      chroot.sudo "apt-get update"
+      chroot.sudo "apt-get update" unless ENV['OFFLINE'] == 'true'
     end
   end
 
