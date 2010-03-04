@@ -20,6 +20,10 @@ module SystemBuilder
       @manifest = manifest
     end
 
+    def puppet_directories
+      %w{manifests files modules templates plugins}.collect { |d| "#{manifest}/#{d}" }.select { |d| File.directory?(d) }
+    end
+
     def configure(chroot)
       puts "* run puppet configuration"
 
@@ -30,15 +34,34 @@ module SystemBuilder
 
       unless File.directory?(manifest)
         chroot.image.install "/tmp/puppet.pp", manifest
-        chroot.sudo "puppet tmp/puppet.pp"
+        chroot.sudo "puppet --color=false tmp/puppet.pp | tee /tmp/puppet.log"
+        process_log_file(chroot.image.expand_path("/tmp/puppet.log"))
       else
-        chroot.image.mkdir "/tmp/puppet"
+        context_dir = "/tmp/puppet"
+        chroot.image.mkdir context_dir
 
-        chroot.image.rsync "/tmp/puppet", "#{manifest}/manifests", "#{manifest}/files", :exclude => "*~"
-        Dir.glob("#{manifest}/modules/*") do |module_dir|
-          chroot.image.rsync "/tmp/puppet", "#{module_dir}/manifests", "#{module_dir}/files", :exclude => "*~"
+        chroot.image.rsync context_dir, puppet_directories, :exclude => "*~"
+
+        chroot.image.mkdir "#{context_dir}/config"
+        chroot.image.open("#{context_dir}/config/fileserver.conf") do |f|
+          %w{files plugins}.each do |mount_point|
+            f.puts "[#{mount_point}]"
+            f.puts "path #{context_dir}/#{mount_point}"
+            f.puts "allow *"
+          end
         end
-        chroot.sudo "puppet tmp/puppet/manifests/site.pp"
+
+        chroot.image.mkdir "#{context_dir}/tmp"
+        chroot.sudo "puppet --color=false --modulepath '#{context_dir}/modules' --confdir='#{context_dir}/config' --templatedir='#{context_dir}/templates' --manifestdir='#{context_dir}/manifests' --vardir=#{context_dir}/tmp '#{context_dir}/manifests/site.pp' | tee #{context_dir}/puppet.log"
+
+        process_log_file(chroot.image.expand_path("#{context_dir}/puppet.log"))
+      end
+    end
+
+    def process_log_file(log_file)
+      FileUtils.cp log_file, "puppet.log"
+      unless File.readlines("puppet.log").grep(/^err:/).empty?
+        raise "Error(s) during puppet configuration, see puppet.log file"
       end
     end
 
