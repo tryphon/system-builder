@@ -113,7 +113,7 @@ class SystemBuilder::DiskImage
         f.puts "default linux"
         f.puts "label linux"
         f.puts "kernel #{readlink_boot_file('vmlinuz')}"
-        f.puts "append ro root=#{root} initrd=#{readlink_boot_file('initrd.img')}"
+        f.puts "append ro root=#{root} initrd=#{readlink_boot_file('initrd.img')} console=tty0 console=ttyS0"
       end
     end
   end
