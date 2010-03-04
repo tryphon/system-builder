@@ -31,6 +31,13 @@ class SystemBuilder::Task < Rake::TaskLib
       end
       task "dist:vmware" => "dist"
 
+      namespace :build do
+        desc "Configure the image system"
+        task :configure do
+          @image.boot.configure
+        end
+      end
+
       task :setup do
         required_packages = []
         required_packages << "qemu" # to convert image files
