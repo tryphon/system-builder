@@ -35,6 +35,12 @@ class SystemBuilder::Task < Rake::TaskLib
         desc "Configure the image system"
         task :configure do
           @image.boot.configure
+          @image.boot.clean
+        end
+
+        desc "Clean the image system"
+        task :clean do
+          @image.boot.clean
         end
       end
 
