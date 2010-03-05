@@ -11,6 +11,18 @@ class SystemBuilder::DebianBoot
     @@default_mirror = mirror    
   end
 
+  @@apt_proxy = nil
+  def self.apt_proxy=(proxy)
+    @@apt_proxy = proxy    
+  end
+  def self.apt_proxy
+    @@apt_proxy
+  end
+
+  def self.apt_options
+    "-o Acquire::http::Proxy='#{apt_proxy}'" if apt_proxy
+  end
+
   def initialize(root)
     @root = root
 
@@ -42,7 +54,7 @@ class SystemBuilder::DebianBoot
   def bootstrap
     unless File.exists?(root)
       FileUtils::mkdir_p root
-      FileUtils::sudo "debootstrap", debbootstrap_options, version, root, mirror
+      FileUtils::sudo "debootstrap", debbootstrap_options, version, root, debbootstrap_url
     end
   end
 
@@ -108,10 +120,76 @@ class SystemBuilder::DebianBoot
   end
 
   def apt_configurator
-    # TODO see if this step is really needed
-    SystemBuilder::ProcConfigurator.new do |chroot|    
-      chroot.sudo "apt-get update" unless ENV['OFFLINE'] == 'true'
+    AptConfigurator.new(self)
+  end
+
+  def apt_confd_proxy_file
+    "/etc/apt/apt.conf.d/02proxy-systembuilder"
+  end
+
+  class AptConfigurator
+
+    attr_reader :boot
+    def initialize(boot)
+      @boot = boot
     end
+
+    def apt_proxy
+      SystemBuilder::DebianBoot.apt_proxy
+    end
+
+    def apt_options
+      SystemBuilder::DebianBoot.apt_options
+    end
+
+    def offline?
+      ENV['OFFLINE'] == 'true'
+    end
+
+    def debbootstrap_url
+      boot.debbootstrap_url
+    end
+
+    def mirror
+      boot.mirror
+    end
+
+    def sources_list(chroot)
+      File.readlines(chroot.image.file("/etc/apt/sources.list")).collect(&:strip)
+    end
+
+    def rewrite_sources_url(chroot)
+      return unless apt_proxy
+
+      chroot.image.open("/etc/apt/sources.list") do |f|
+        sources_list(chroot).each do |line|
+          f.puts line.gsub(/^deb #{debbootstrap_url}/, "deb #{mirror}")
+        end
+      end
+    end
+
+    def update(chroot)
+      chroot.sudo "apt-get #{apt_options} update" unless offline?
+    end
+
+    def apt_confd_file
+      boot.apt_confd_proxy_file
+    end
+
+    def configure_proxy(chroot)
+      return unless apt_proxy
+
+      chroot.image.open(apt_confd_file) do |f|
+        f.puts "Acquire::http { Proxy \"#{apt_proxy}\"; };"
+      end
+    end
+
+    def configure(chroot)
+      rewrite_sources_url(chroot)
+      update(chroot)
+      configure_proxy(chroot)
+    end
+
   end
 
   def policyrc_configurator
@@ -126,6 +204,10 @@ class SystemBuilder::DebianBoot
 
   def apt_cleaner
     Proc.new do |chroot|
+      if chroot.image.exists?(apt_confd_proxy_file)
+        puts "* remove apt proxy configuration"
+        chroot.sudo "rm #{apt_confd_proxy_file}"
+      end
       puts "* clean apt caches"
       chroot.sudo "apt-get clean"      
       puts "* autoremove packages"
@@ -158,6 +240,14 @@ class SystemBuilder::DebianBoot
     }.collect do |k,v| 
       ["--#{k}", Array(v).join(',')] unless v.blank?
     end.compact
+  end
+
+  def debbootstrap_url
+    if self.class.apt_proxy
+      "#{self.class.apt_proxy}#{mirror.gsub('http:/','')}"
+    else
+      mirror
+    end
   end
 
   def image(&block)
@@ -209,6 +299,7 @@ class SystemBuilder::DebianBoot
     def expand_path(path)
       File.join(@root,path)
     end
+    alias_method :file, :expand_path
 
     def exists?(path)
       path = expand_path(path)
@@ -226,7 +317,7 @@ class SystemBuilder::DebianBoot
     end
 
     def apt_install(*packages)
-      sudo "apt-get install --yes --force-yes #{packages.join(' ')}"
+      sudo "apt-get install #{SystemBuilder::DebianBoot.apt_options} --yes --force-yes #{packages.join(' ')}"
     end
 
     def cp(*arguments)
