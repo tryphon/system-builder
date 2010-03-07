@@ -18,7 +18,8 @@ lib/system_builder/boot.rb
 lib/system_builder/cli.rb
 lib/system_builder/configurator.rb
 lib/system_builder/core_ext.rb
-lib/system_builder/image.rb
+lib/system_builder/disk_image.rb
+lib/system_builder/iso_image.rb
 lib/system_builder/task.rb
 script/console
 script/destroy

@@ -19,6 +19,7 @@ module SystemBuilder
 end
 
 require 'system_builder/core_ext'
-require 'system_builder/image'
+require 'system_builder/disk_image'
+require 'system_builder/iso_image'
 require 'system_builder/boot'
 require 'system_builder/configurator'

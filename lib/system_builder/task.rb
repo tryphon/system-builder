@@ -24,9 +24,16 @@ class SystemBuilder::Task < Rake::TaskLib
         @image.create
       end
       namespace :dist do
-        desc "Create vmwaire image in #{@image.file}.vdmk"
+        desc "Create vmware image in #{@image.file}.vdmk"
         task :vmware do
           @image.convert "#{@image.file}.vmdk", :format => "vmdk"
+        end
+
+        desc "Create iso image in #{@image.file}.iso"
+        task :iso do
+          SystemBuilder::IsoImage.new("#{@image.file}.iso").tap do |image|
+            image.boot = @image.boot
+          end.create_iso
         end
       end
       task "dist:vmware" => "dist"
