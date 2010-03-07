@@ -40,7 +40,7 @@ module SystemBuilder
         context_dir = "/tmp/puppet"
         chroot.image.mkdir context_dir
 
-        chroot.image.rsync context_dir, puppet_directories, :exclude => "*~"
+        chroot.image.rsync context_dir, puppet_directories, :exclude => "*~", :delete => true
 
         chroot.image.mkdir "#{context_dir}/config"
         chroot.image.open("#{context_dir}/config/fileserver.conf") do |f|
