@@ -11,6 +11,11 @@ class SystemBuilder::LiveImage
   end
 
   def create
+    boot.configurators << SystemBuilder::ProcConfigurator.new do |chroot|
+      puts "* install live-initramfs"
+      chroot.apt_install %w{live-initramfs}
+    end
+
     boot.create
 
     file_creation = (not File.exists?(file))
@@ -79,16 +84,18 @@ class SystemBuilder::LiveImage
   def install_syslinux_files(options = {})
     version = (options[:version] or Time.now.strftime("%Y%m%d%H%M"))
 
-    boot.image do |image|
-      image.mkdir "/"
-
-      image.open("/syslinux.cfg") do |f|
-        f.puts "default linux"
-        f.puts "label linux"
-        f.puts "kernel #{readlink_boot_file('vmlinuz')}"
-        f.puts "append ro boot=live initrd=#{readlink_boot_file('initrd.img')} console=tty0 console=ttyS0"
+    mount_boot_fs do |mount_dir|
+      SystemBuilder::DebianBoot::Image.new(mount_dir).tap do |image|
+        image.open("/syslinux.cfg") do |f|
+          f.puts "default linux"
+          f.puts "label linux"
+          f.puts "kernel /live/#{readlink_boot_file('vmlinuz')}"
+          f.puts "append ro boot=live initrd=/live/#{readlink_boot_file('initrd.img')} persistent=nofiles"
+          # console=tty0 console=ttyS0
+        end
       end
     end
+    FileUtils.touch file
   end
 
   def readlink_boot_file(boot_file)
