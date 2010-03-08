@@ -20,6 +20,7 @@ lib/system_builder/configurator.rb
 lib/system_builder/core_ext.rb
 lib/system_builder/disk_image.rb
 lib/system_builder/iso_image.rb
+lib/system_builder/live_image.rb
 lib/system_builder/task.rb
 script/console
 script/destroy
