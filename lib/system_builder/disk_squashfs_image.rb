@@ -1,6 +1,6 @@
 require 'tempfile'
 
-class SystemBuilder::LiveImage
+class SystemBuilder::DiskSquashfsImage
 
   attr_accessor :boot, :size
   attr_reader :file
