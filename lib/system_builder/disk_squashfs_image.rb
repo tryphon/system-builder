@@ -122,7 +122,7 @@ EOF
         chroot.sudo "extlinux --install -H16 -S63 /boot"
       end
     end
-    FileUtils::sh "dd if=/usr/lib/extlinux/mbr.bin of=#{file} conv=notrunc"
+    FileUtils::sh "dd if=#{boot.root}/usr/lib/syslinux/mbr.bin of=#{file} conv=notrunc"
   end
 
   def fs_label
