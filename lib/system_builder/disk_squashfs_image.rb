@@ -29,8 +29,11 @@ mount -t ext3 LABEL=#{fs_label} /boot
 exit 0
 EOF
         end  
-
         chroot.sudo "chmod +x #{script}"
+
+        chroot.image.open("/etc/initramfs-tools/modules") do |f|
+          f.puts "squashfs"
+        end
         chroot.sudo "/usr/sbin/update-initramfs -u"
       end
     end
