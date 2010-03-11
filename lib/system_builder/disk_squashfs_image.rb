@@ -23,6 +23,7 @@ class SystemBuilder::DiskSquashfsImage
 case ${1:-} in
   prereqs) echo ""; exit 0;;
 esac
+modprobe loop
 mkdir /boot
 mount -t ext3 LABEL=#{fs_label} /boot
 exit 0
