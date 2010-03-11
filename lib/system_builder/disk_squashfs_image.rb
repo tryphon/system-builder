@@ -103,15 +103,15 @@ EOF
     root = (options[:root] or "LABEL=#{fs_label}")
     version = (options[:version] or Time.now.strftime("%Y%m%d%H%M"))
 
-    boot.image do |image|
-      image.mkdir "/boot/"
-
-      image.open("/boot/extlinux.conf") do |f|
-        f.puts "DEFAULT linux"
-        f.puts "LABEL linux"
-        f.puts "SAY Now booting #{version} from syslinux ..."
-        f.puts "KERNEL /vmlinuz"
-        f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs rootdelay=30 debug"
+    mount_boot_fs do |mount_dir|
+      SystemBuilder::DebianBoot::Image.new(mount_dir).tap do |image|
+        image.open("extlinux.conf") do |f|
+          f.puts "DEFAULT linux"
+          f.puts "LABEL linux"
+          f.puts "SAY Now booting #{version} from syslinux ..."
+          f.puts "KERNEL /vmlinuz"
+          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs rootdelay=30 debug"
+        end
       end
     end
   end
