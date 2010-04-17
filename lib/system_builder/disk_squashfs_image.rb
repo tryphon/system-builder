@@ -25,11 +25,24 @@ case ${1:-} in
 esac
 modprobe loop
 mkdir /boot
-mount -t ext3 LABEL=#{fs_label} /boot
+mount -r -t ext3 LABEL=#{fs_label} /boot
 exit 0
 EOF
         end  
         chroot.sudo "chmod +x #{script}"
+
+        chroot.image.mkdir "/usr/share/initramfs-tools/scripts/local-bottom"
+        chroot.image.open("/usr/share/initramfs-tools/scripts/local-bottom/umount_boot") do |f|
+        f.puts <<EOF
+#!/bin/sh -x
+case ${1:-} in
+  prereqs) echo ""; exit 0;;
+esac
+mount -n -o move /boot /root/boot
+exit 0
+EOF
+        end  
+        chroot.sudo "chmod +x /usr/share/initramfs-tools/scripts/local-bottom/umount_boot"
 
         chroot.image.open("/etc/initramfs-tools/modules") do |f|
           f.puts "squashfs"
@@ -114,7 +127,7 @@ EOF
           f.puts "LABEL linux"
           f.puts "SAY Now booting #{version} from syslinux ..."
           f.puts "KERNEL /vmlinuz"
-          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs rootdelay=30 debug"
+          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs debug"
         end
       end
     end
