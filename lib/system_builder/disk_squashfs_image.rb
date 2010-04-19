@@ -11,46 +11,7 @@ class SystemBuilder::DiskSquashfsImage
   end
 
   def create
-    boot.configurators << SystemBuilder::ProcConfigurator.new do |chroot|
-      puts "* install initramfs-tools"
-      chroot.apt_install %w{initramfs-tools syslinux}
-
-      script = "/usr/share/initramfs-tools/scripts/local-top/mount_boot"
-      unless chroot.image.exists?(script)
-        chroot.image.open(script) do |f|
-        f.puts <<EOF
-#!/bin/sh -x
-case ${1:-} in
-  prereqs) echo ""; exit 0;;
-esac
-modprobe loop
-mkdir /boot
-mount -r -t ext3 LABEL=#{fs_label} /boot
-exit 0
-EOF
-        end  
-        chroot.sudo "chmod +x #{script}"
-
-        chroot.image.mkdir "/usr/share/initramfs-tools/scripts/local-bottom"
-        chroot.image.open("/usr/share/initramfs-tools/scripts/local-bottom/umount_boot") do |f|
-        f.puts <<EOF
-#!/bin/sh -x
-case ${1:-} in
-  prereqs) echo ""; exit 0;;
-esac
-mount -n -o move /boot /root/boot
-exit 0
-EOF
-        end  
-        chroot.sudo "chmod +x /usr/share/initramfs-tools/scripts/local-bottom/umount_boot"
-
-        chroot.image.open("/etc/initramfs-tools/modules") do |f|
-          f.puts "squashfs"
-        end
-        chroot.sudo "/usr/sbin/update-initramfs -u"
-      end
-    end
-
+    boot.configurators << SystemBuilder::InitRamFsConfigurator.new
     boot.create
 
     file_creation = (not File.exists?(file))
@@ -102,7 +63,7 @@ EOF
 
   def compress_root_fs
     mount_boot_fs do |mount_dir|
-      FileUtils::sudo "mksquashfs #{boot.root}/ #{mount_dir}/filesystem.squashfs -noappend -e #{boot.root}/"
+      FileUtils::sudo "mksquashfs #{boot.root}/ #{mount_dir}/filesystem.squashfs -noappend -e /boot"
     end
     FileUtils.touch file
   end
@@ -162,4 +123,5 @@ EOF
     linux_partition_info = `/sbin/sfdisk -l #{file}`.scan(%r{#{file}.*Linux}).first
     linux_partition_info.split[5].to_i
   end
+
 end
