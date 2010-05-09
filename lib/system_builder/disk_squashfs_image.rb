@@ -62,8 +62,11 @@ class SystemBuilder::DiskSquashfsImage
   end
 
   def compress_root_fs
+    FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e /boot"
+    FileUtils::sudo "chown #{ENV['USER']}:#{ENV['USER']} build/filesystem.squashfs && chmod +r build/filesystem.squashfs"
+    
     mount_boot_fs do |mount_dir|
-      FileUtils::sudo "mksquashfs #{boot.root}/ #{mount_dir}/filesystem.squashfs -noappend -e /boot"
+      FileUtils::sudo "cp build/filesystem.squashfs #{mount_dir}/filesystem.squashfs"
     end
     FileUtils.touch file
   end
@@ -88,7 +91,7 @@ class SystemBuilder::DiskSquashfsImage
           f.puts "LABEL linux"
           f.puts "SAY Now booting #{version} from syslinux ..."
           f.puts "KERNEL /vmlinuz"
-          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs debug"
+          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs"
         end
       end
     end
