@@ -34,7 +34,7 @@ class SystemBuilder::IsoSquashfsImage
         f.puts "default linux"
         f.puts "label linux"
         f.puts "kernel /vmlinuz"
-        f.puts "append ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs debug"
+        f.puts "append ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs"
       end
 
       image.install "/boot/isolinux", "/usr/lib/syslinux/isolinux.bin"
