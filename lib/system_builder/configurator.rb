@@ -14,10 +14,11 @@ module SystemBuilder
 
   class PuppetConfigurator
 
-    attr_reader :manifest
+    attr_reader :manifest, :config
 
-    def initialize(manifest = ".")
-      @manifest = manifest
+    def initialize(options = {})
+      @manifest = (options.delete(:manifest) or ".")
+      @config = options.dup
     end
 
     def puppet_directories
@@ -41,6 +42,12 @@ module SystemBuilder
         chroot.image.mkdir context_dir
 
         chroot.image.rsync context_dir, puppet_directories, :exclude => "*~", :delete => true
+
+        chroot.image.open("#{context_dir}/manifests/config.pp") do |f|
+          config.each do |key, value|
+            f.puts "$#{key}=\"#{value}\""
+          end
+        end
 
         chroot.image.mkdir "#{context_dir}/config"
         chroot.image.open("#{context_dir}/config/fileserver.conf") do |f|
