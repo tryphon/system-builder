@@ -63,7 +63,7 @@ class SystemBuilder::DiskSquashfsImage
 
   def compress_root_fs
     FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e /boot"
-    FileUtils::sudo "chown #{ENV['USER']}:#{ENV['USER']} build/filesystem.squashfs && chmod +r build/filesystem.squashfs"
+    FileUtils::sudo "chown #{ENV['USER']} build/filesystem.squashfs && chmod +r build/filesystem.squashfs"
     
     mount_boot_fs do |mount_dir|
       FileUtils::sudo "cp build/filesystem.squashfs #{mount_dir}/filesystem.squashfs"
