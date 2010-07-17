@@ -37,7 +37,7 @@ class SystemBuilder::DiskSquashfsImage
 
   def create_partition_table
     # Partition must be bootable for syslinux
-    FileUtils::sh "echo '#{free_sectors},,L,*' | /sbin/sfdisk --no-reread -uS -H16 -S63 #{file}"
+    FileUtils::sh "echo '#{free_sectors},,L,*' | /sbin/sfdisk --force --no-reread -uS -H16 -S63 #{file}"
   end
  
   def format_boot_fs
