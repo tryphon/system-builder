@@ -1,7 +1,7 @@
 class SystemBuilder::DebianBoot
   
   attr_accessor :version, :mirror, :architecture
-  attr_accessor :exclude, :include
+  attr_accessor :exclude, :include, :components
 
   attr_reader :root
   attr_reader :configurators
@@ -29,6 +29,7 @@ class SystemBuilder::DebianBoot
     @version = :lenny
     @mirror = @@default_mirror
     @architecture = :i386
+    @components = ["main"]
     @exclude = []
     @include = [ "debian-archive-keyring" ]
 
@@ -236,7 +237,8 @@ class SystemBuilder::DebianBoot
       :arch => architecture,  
       :exclude => exclude.join(','),
       :include => include.join(','),
-      :variant => :minbase
+      :variant => :minbase,
+      :components => components.join(',')
     }.collect do |k,v| 
       ["--#{k}", Array(v).join(',')] unless v.blank?
     end.compact
