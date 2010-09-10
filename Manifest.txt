@@ -19,6 +19,7 @@ lib/system_builder/cli.rb
 lib/system_builder/configurator.rb
 lib/system_builder/core_ext.rb
 lib/system_builder/disk_image.rb
+lib/system_builder/disk_nfsroot_image.rb
 lib/system_builder/disk_squashfs_image.rb
 lib/system_builder/init_ram_fs_configurator.rb
 lib/system_builder/iso_image.rb

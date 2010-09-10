@@ -60,7 +60,7 @@ class SystemBuilder::Task < Rake::TaskLib
         required_packages << "rsync"
         required_packages << "dosfstools"
         required_packages << "syslinux"
-	required_packages << "squashfs-tools"
+        required_packages << "squashfs-tools"
         
         FileUtils.sudo "apt-get install #{required_packages.join(' ')}"
       end

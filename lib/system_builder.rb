@@ -2,7 +2,7 @@ $:.unshift(File.dirname(__FILE__)) unless
   $:.include?(File.dirname(__FILE__)) || $:.include?(File.expand_path(File.dirname(__FILE__)))
 
 module SystemBuilder
-  VERSION = '0.0.12'
+  VERSION = '0.0.13'
 
   @@configurations = {}
   
@@ -24,6 +24,7 @@ require 'system_builder/iso_image'
 require 'system_builder/live_image'
 require 'system_builder/init_ram_fs_configurator'
 require 'system_builder/disk_squashfs_image'
+require 'system_builder/disk_nfsroot_image'
 require 'system_builder/iso_squashfs_image'
 require 'system_builder/boot'
 require 'system_builder/configurator'
