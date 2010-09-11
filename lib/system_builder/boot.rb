@@ -46,10 +46,13 @@ class SystemBuilder::DebianBoot
     @cleaners = [ apt_cleaner, policyrc_cleaner ]
   end
 
-  def create
+  def create(force = false)
+    return if @creating and not force
+
     bootstrap
     configure
     clean
+    @creating = true
   end
 
   def bootstrap

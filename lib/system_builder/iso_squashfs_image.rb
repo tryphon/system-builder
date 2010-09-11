@@ -21,7 +21,10 @@ class SystemBuilder::IsoSquashfsImage
   end
 
   def compress_root_fs
-    FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e /boot"
+    unless File.exists?("build/filesystem.squashfs")
+      FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e /boot"
+      FileUtils::sudo "chown #{ENV['USER']} build/filesystem.squashfs && chmod +r build/filesystem.squashfs"
+    end
   end
 
   def install_isolinux_files(options = {})

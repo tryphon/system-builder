@@ -24,8 +24,6 @@ class SystemBuilder::DiskNfsRootImage
 
     sync_boot_fs
     install_extlinux_files
-
-#    compress_root_fs
     install_extlinux
 
     self
@@ -59,16 +57,6 @@ class SystemBuilder::DiskNfsRootImage
     ensure
       FileUtils::sudo "umount #{mount_dir}"
     end
-  end
-
-  def compress_root_fs
-    FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e /boot"
-    FileUtils::sudo "chown #{ENV['USER']} build/filesystem.squashfs && chmod +r build/filesystem.squashfs"
-    
-    mount_boot_fs do |mount_dir|
-      FileUtils::sudo "cp build/filesystem.squashfs #{mount_dir}/filesystem.squashfs"
-    end
-    FileUtils.touch file
   end
   
   def sync_boot_fs
