@@ -100,7 +100,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
 
       namespace :buildbot do
         task :dist do
-          target_directory = ENV['DIST'] or "#{ENV['HOME']}/dist/#{box.name}"
+          target_directory = (ENV['DIST'] or "#{ENV['HOME']}/dist/#{box.name}")
           release_number = (latest_release_number or box.release_number)
 
           mkdir_p target_directory
