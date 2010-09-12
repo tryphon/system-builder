@@ -32,6 +32,7 @@ class SystemBuilder::DiskSquashfsImage
   end
 
   def create_file
+    FileUtils::mkdir_p File.dirname(file)
     FileUtils::sh "dd if=/dev/zero of=#{file} count=#{size.in_megabytes.to_i} bs=1M"
   end
 
