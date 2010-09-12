@@ -91,7 +91,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
 
       task :buildbot => [:clean, "dist:all", "buildbot:dist"] do
         # clean in dependencies is executed only once
-        Rake::Task["#{box.name}:clean"].invoke
+        sh "rake #{box.name}:clean"
       end
 
       def latest_release_number
