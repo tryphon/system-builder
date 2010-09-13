@@ -3,6 +3,7 @@ Manifest.txt
 PostInstall.txt
 README.rdoc
 Rakefile
+bin/box
 bin/system-builder
 examples/Rakefile
 examples/config.rb

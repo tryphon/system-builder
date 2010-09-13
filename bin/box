@@ -1,0 +1,47 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+OptionParser.new do |opts|
+  opts.banner = <<-BANNER.gsub(/^    /,'')
+    Box : manage box
+
+    Usage: #{File.basename($0)} boot [options] 
+
+    Options are:
+    BANNER
+  opts.separator ""
+  opts.on("-r", "--root=disk|iso", String,
+          "The support used to boot") { |arg| @root = arg }
+  opts.on("-h", "--help",
+          "Show this help message.") { puts opts; exit }
+  opts.parse!(ARGV)
+  
+  @command = ARGV.shift
+  
+  unless @command == "boot"
+    puts opts; exit
+  end
+end
+
+qemu_options = []
+
+case @root
+when "iso"
+  qemu_options << "-cdrom dist/iso"
+else
+  qemu_options << "-drive file=dist/disk,if=ide,index=0,media=disk"
+end
+
+if File.exists?("disk/storage")
+  qemu_options << "-drive file=dist/storage,if=ide,index=1,media=disk"
+end  
+
+qemu_options << "-net nic -net vde,sock=/var/run/vde2/tap0.ctl"
+
+ENV['QEMU_AUDIO_DRV']='alsa'
+
+qemu_command = "qemu -enable-kvm -m 512m -soundhw ac97 #{qemu_options.join(' ')}"
+
+puts "Run #{qemu_command}"
+system qemu_command
