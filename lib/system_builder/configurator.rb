@@ -28,6 +28,20 @@ module SystemBuilder
     def configure(chroot)
       puts "* run puppet configuration"
 
+      unless chroot.image.exists?("/etc/apt/sources.list.d/lenny-backports.list")
+        chroot.image.open("/etc/apt/sources.list.d/lenny-backports.list") do |f|
+          f.puts "deb http://backports.debian.org/debian-backports lenny-backports main contrib non-free"
+        end
+
+        chroot.image.open("/etc/apt/preferences") do |f|
+          f.puts "Package: puppet"
+          f.puts "Pin: release a=lenny-backports"
+          f.puts "Pin-Priority: 999"
+        end
+        
+        chroot.sudo "apt-get update"
+      end
+
       chroot.apt_install :puppet
       chroot.image.open("/etc/default/puppet") do |f|
         f.puts "START=no"
