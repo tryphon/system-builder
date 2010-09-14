@@ -33,7 +33,7 @@ else
   qemu_options << "-drive file=dist/disk,if=ide,index=0,media=disk"
 end
 
-if File.exists?("disk/storage")
+if File.exists?("dist/storage")
   qemu_options << "-drive file=dist/storage,if=ide,index=1,media=disk"
 end  
 
