@@ -16,7 +16,7 @@ get_fstype() {
 
 list_devices() {
     # list partitions first
-    (ls /dev/hd*[1-9] /dev/sd*[1-9] ; ls /dev/hd[a-z] /dev/sd[a-z]) 2> /dev/null
+    (ls /dev/hd*[1-9] /dev/sd*[1-9] /dev/sr[0-9]; ls /dev/hd[a-z] /dev/sd[a-z]) 2> /dev/null
 }
 
 mkdir /boot
