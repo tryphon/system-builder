@@ -31,14 +31,12 @@ qemu_disks = []
 case @root
 when "iso"
   qemu_options << "-cdrom dist/iso"
+  qemu_options << "--boot order=d"
 else
   qemu_disks << "dist/disk"
 end
 
-if File.exists?("dist/storage")
-  qemu_disks << "dist/storage"
-  qemu_options << "--boot order=d"
-end  
+qemu_disks.push *Dir["dist/storage*"]
 
 qemu_disks.each_with_index do |disk, index|
   qemu_options << "-drive file=#{disk},if=ide,index=#{index+1},media=disk"
