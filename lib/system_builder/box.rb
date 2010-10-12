@@ -11,7 +11,7 @@ class SystemBuilder::Box
   end
   
   def release_name
-    @release_name ||= "streambox-#{release_number}"
+    @release_name ||= "#{name}-#{release_number}"
   end
 
   def root_file
@@ -85,7 +85,7 @@ class SystemBuilder::Box
   def create_latest_file(latest_file)
     File.open(latest_file, "w") do |f|
       f.puts "name: #{release_name}"
-      f.puts "url: http://download.tryphon.eu/streambox/streambox-#{release_number}.tar"
+      f.puts "url: http://download.tryphon.eu/#{name}/#{name}-#{release_number}.tar"
       f.puts "checksum: #{upgrade_checksum}"
       f.puts "status_updated_at: #{Time.now}"
       f.puts "description_url: http://www.tryphon.eu/release/#{release_name}"
