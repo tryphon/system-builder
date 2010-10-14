@@ -2,6 +2,7 @@
 
 require 'optparse'
 
+@options = {}
 OptionParser.new do |opts|
   opts.banner = <<-BANNER.gsub(/^    /,'')
     Box : manage box
@@ -12,41 +13,120 @@ OptionParser.new do |opts|
     BANNER
   opts.separator ""
   opts.on("-r", "--root=disk|iso", String,
-          "The support used to boot") { |arg| @root = arg }
+          "The support used to boot") { |arg| @options[:root] = arg }
   opts.on("-h", "--help",
           "Show this help message.") { puts opts; exit }
   opts.parse!(ARGV)
   
   @command = ARGV.shift
-  
-  unless @command == "boot"
+
+  if @command == "clone" and not ARGV.empty?
+    @options[:target] = ARGV.shift
+  end
+
+  unless %w{boot clone}.include? @command
     puts opts; exit
   end
 end
 
-qemu_options = []
+class BoxCommand
 
-qemu_disks = []
+  def boot(options = {})
+    qemu_options = []
 
-case @root
-when "iso"
-  qemu_options << "-cdrom dist/iso"
-  qemu_options << "--boot order=d"
-else
-  qemu_disks << "dist/disk"
+    qemu_disks = []
+
+    case options[:root]
+    when "iso"
+      qemu_options << "-cdrom dist/iso"
+      qemu_options << "--boot order=d"
+    else
+      qemu_disks << "dist/disk"
+    end
+
+    qemu_disks.push *Dir["dist/storage*"]
+
+    qemu_disks.each_with_index do |disk, index|
+      qemu_options << "-drive file=#{disk},if=ide,index=#{index+1},media=disk"
+    end
+
+    qemu_options << "-net nic -net vde,sock=/var/run/vde2/tap0.ctl"
+
+    ENV['QEMU_AUDIO_DRV']='alsa'
+
+    qemu_command = "qemu -enable-kvm -m 512m -soundhw ac97 #{qemu_options.join(' ')}"
+
+    puts "Run #{qemu_command}"
+    system qemu_command
+  end
+
+  def clone(options = {})
+    target = (options[:target] or "/dev/sdb")
+    partition = "#{target}1"
+
+    exit 1 unless File.exists?(disk_image)
+
+    if partition_mount = mounts.assoc(partition)
+      partition_mount_point = partition_mount[1]
+    else
+      partition_mount_point = "/media/boot"
+      #sudo "mkdir #{partition_mount_point}" unless File.exist? partition_mount_point
+      #sudo "mount #{partition} #{partition_mount_point}"
+    end
+
+    #unless File.exists? "#{partition_mount_point}/config.pp"
+      $stdout.write "Confirm you want install box image in #{target} [y/N] :"
+      $stdout.flush
+      exit 1 unless $stdin.read(1).downcase == 'y'
+    #end
+
+    if mounts.assoc(partition)
+      puts "Unmount #{target}"
+      exit 1 unless system "sudo umount #{partition}"
+    end
+
+    puts "Install filesystem"
+    sh "echo '1,,L,' | sudo /sbin/sfdisk -f -uS #{target}"
+    sudo "mke2fs -j -L boot #{partition}"
+
+    puts "Install MBR"
+    sudo "dd if=#{disk_image} of=#{target} conv=notrunc bs=512 count=1"
+
+    puts "Copy files"
+    sudo "mount #{partition} #{partition_mount_point}"
+    mount_disk_image_fs do |dir|
+      sudo "rsync -av #{dir}/ #{partition_mount_point}/"
+    end
+    sudo "umount #{partition_mount_point}"
+  end
+
+  def sh(command)
+    puts "Run #{command}"
+    raise "command failed: '#{command}'" unless system command
+  end
+
+  def sudo(command)
+    sh "sudo #{command}"
+  end
+
+  def mounts
+    IO.readlines("/proc/mounts").map { |m| m.scan(/\S+/) }
+  end
+
+  def disk_image
+    "dist/disk"
+  end
+
+  def mount_disk_image_fs
+    mount_dir = "/tmp/mount_boot_fs"
+    begin
+      sudo "mount -o loop,offset=#{64* 512} #{disk_image} #{mount_dir}"
+      yield mount_dir
+    ensure
+      sudo "umount #{mount_dir}"
+    end
+  end
+
 end
 
-qemu_disks.push *Dir["dist/storage*"]
-
-qemu_disks.each_with_index do |disk, index|
-  qemu_options << "-drive file=#{disk},if=ide,index=#{index+1},media=disk"
-end
-
-qemu_options << "-net nic -net vde,sock=/var/run/vde2/tap0.ctl"
-
-ENV['QEMU_AUDIO_DRV']='alsa'
-
-qemu_command = "qemu -enable-kvm -m 512m -soundhw ac97 #{qemu_options.join(' ')}"
-
-puts "Run #{qemu_command}"
-system qemu_command
+BoxCommand.new.send(@command, @options)
