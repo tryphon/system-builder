@@ -86,11 +86,8 @@ class BoxCommand
     end
 
     puts "Install filesystem"
-    sh "echo '1,,L,' | sudo /sbin/sfdisk -f -uS #{target}"
+    sh "echo ',,L,*' | sudo /sbin/sfdisk -f -uS #{target}"
     sudo "mke2fs -j -L boot #{partition}"
-
-    puts "Install MBR"
-    sudo "dd if=#{disk_image} of=#{target} conv=notrunc bs=512 count=1"
 
     puts "Copy files"
     sudo "mount #{partition} #{partition_mount_point}"
@@ -98,6 +95,21 @@ class BoxCommand
       sudo "rsync -av #{dir}/ #{partition_mount_point}/"
     end
     sudo "umount #{partition_mount_point}"
+
+    puts "Install extlinux"
+    sudo "mount #{partition} build/root/boot"
+    sudo "mount proc build/root/proc -t proc"
+    sudo "mount -o bind /dev build/root/dev"
+
+    begin
+      sudo "strace -f chroot build/root /usr/bin/extlinux --install /boot"
+    ensure
+      sudo "umount build/root/proc"
+      sudo "umount build/root/boot"
+      sudo "umount build/root/dev"
+    end
+
+    sudo "dd if=build/root/usr/lib/syslinux/mbr.bin of=#{target}"
   end
 
   def sh(command)
@@ -120,7 +132,7 @@ class BoxCommand
   def mount_disk_image_fs
     mount_dir = "/tmp/mount_boot_fs"
     begin
-      sudo "mount -o loop,offset=#{64* 512} #{disk_image} #{mount_dir}"
+      sudo "mount -o loop,offset=#{64*512} #{disk_image} #{mount_dir}"
       yield mount_dir
     ensure
       sudo "umount #{mount_dir}"
