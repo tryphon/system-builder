@@ -14,15 +14,15 @@ OptionParser.new do |opts|
   opts.separator ""
   opts.on("-r", "--root=disk|iso", String,
           "The support used to boot") { |arg| @options[:root] = arg }
+  opts.on("-t", "--target=<disk device>", String,
+          "The target to clone an image") { |arg| @options[:target] = arg }
+  opts.on("-i", "--image=<disk image>", String,
+          "The box image to be cloned") { |arg| @options[:image] = arg }
   opts.on("-h", "--help",
           "Show this help message.") { puts opts; exit }
   opts.parse!(ARGV)
   
   @command = ARGV.shift
-
-  if @command == "clone" and not ARGV.empty?
-    @options[:target] = ARGV.shift
-  end
 
   unless %w{boot clone}.include? @command
     puts opts; exit
@@ -62,9 +62,18 @@ class BoxCommand
 
   def clone(options = {})
     target = (options[:target] or "/dev/sdb")
+    disk_image = (options[:image] or "dist/disk")
     partition = "#{target}1"
 
-    exit 1 unless File.exists?(disk_image)
+    if disk_image =~ /([a-z]+box)-(\d+-\d+)/
+      # like pigebox-20101014-1155
+      name = $1
+      release = $2
+      disk_image = "dist/#{name}-#{release}.disk"
+      sh "ssh dev.dbx.tryphon.priv cat /var/lib/buildbot/dist/#{name}/#{name}-#{release}.disk.gz | gunzip -c > #{disk_image}" unless File.exist?(disk_image)
+    end
+
+    raise "Can't find #{disk_image}" unless File.exists?(disk_image)
 
     if partition_mount = mounts.assoc(partition)
       partition_mount_point = partition_mount[1]
@@ -75,7 +84,7 @@ class BoxCommand
     end
 
     #unless File.exists? "#{partition_mount_point}/config.pp"
-      $stdout.write "Confirm you want install box image in #{target} [y/N] :"
+      $stdout.write "Confirm you want install box image (#{disk_image}) in #{target} [y/N] :"
       $stdout.flush
       exit 1 unless $stdin.read(1).downcase == 'y'
     #end
@@ -91,7 +100,7 @@ class BoxCommand
 
     puts "Copy files"
     sudo "mount #{partition} #{partition_mount_point}"
-    mount_disk_image_fs do |dir|
+    mount_disk_image_fs(disk_image) do |dir|
       sudo "rsync -av #{dir}/ #{partition_mount_point}/"
     end
     sudo "umount #{partition_mount_point}"
@@ -102,7 +111,7 @@ class BoxCommand
     sudo "mount -o bind /dev build/root/dev"
 
     begin
-      sudo "strace -f chroot build/root /usr/bin/extlinux --install /boot"
+      sudo "chroot build/root /usr/bin/extlinux --install /boot"
     ensure
       sudo "umount build/root/proc"
       sudo "umount build/root/boot"
@@ -125,11 +134,7 @@ class BoxCommand
     IO.readlines("/proc/mounts").map { |m| m.scan(/\S+/) }
   end
 
-  def disk_image
-    "dist/disk"
-  end
-
-  def mount_disk_image_fs
+  def mount_disk_image_fs(disk_image)
     mount_dir = "/tmp/mount_boot_fs"
     begin
       sudo "mount -o loop,offset=#{64*512} #{disk_image} #{mount_dir}"
