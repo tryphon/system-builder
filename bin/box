@@ -18,13 +18,15 @@ OptionParser.new do |opts|
           "The target to clone an image") { |arg| @options[:target] = arg }
   opts.on("-i", "--image=<disk image>", String,
           "The box image to be cloned") { |arg| @options[:image] = arg }
+  opts.on("-h", "--host=<host>", String,
+          "The host to be upgraded") { |arg| @options[:host] = arg }
   opts.on("-h", "--help",
           "Show this help message.") { puts opts; exit }
   opts.parse!(ARGV)
   
   @command = ARGV.shift
 
-  unless %w{boot clone}.include? @command
+  unless %w{boot clone upgrade}.include? @command
     puts opts; exit
   end
 end
@@ -142,6 +144,14 @@ class BoxCommand
     ensure
       sudo "umount #{mount_dir}"
     end
+  end
+
+  def upgrade(options = {})
+    host = options[:host]
+    raise "No specified host for upgrade, use --host" unless host
+
+    sh "scp dist/latest.yml dist/upgrade.tar #{host}:/tmp/"
+    sh "ssh #{host} box-upgrade /tmp/upgrade.tar /tmp/latest.yml"
   end
 
 end
