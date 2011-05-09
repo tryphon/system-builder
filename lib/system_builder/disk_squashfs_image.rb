@@ -76,7 +76,7 @@ class SystemBuilder::DiskSquashfsImage
     mount_boot_fs do |mount_dir|
       FileUtils::sudo "rsync -a --delete #{boot.root}/boot/ #{mount_dir}/"
       FileUtils::sudo "ln -s #{readlink_boot_file('initrd.img')} #{mount_dir}/initrd.img"
-      FileUtils::sudo "ln -s #{readlink_boot_file('vmlinuz')} #{mount_dir}/vmlinuz.img"
+      FileUtils::sudo "ln -s #{readlink_boot_file('vmlinuz')} #{mount_dir}/vmlinuz"
     end
     FileUtils.touch file
   end
