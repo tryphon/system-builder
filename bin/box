@@ -138,6 +138,7 @@ class BoxCommand
 
   def mount_disk_image_fs(disk_image)
     mount_dir = "/tmp/mount_boot_fs"
+    sh "mkdir -p /tmp/mount_boot_fs"
     begin
       sudo "mount -o loop,offset=#{64*512} #{disk_image} #{mount_dir}"
       yield mount_dir
