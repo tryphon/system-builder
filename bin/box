@@ -66,24 +66,26 @@ class BoxCommand
     target = (options[:target] or "/dev/sdb")
     disk_image = (options[:image] or "dist/disk")
     partition = "#{target}1"
+    tmpdir = "/tmp/dist"
 
+    sh "[ -d #{tmpdir} ]||mkdir #{tmpdir}"
     if disk_image =~ /([a-z]+box)-(\d+-\d+)/
       # like pigebox-20101014-1155
       name = $1
       release = $2
-      disk_image = "dist/#{name}-#{release}.disk"
+      disk_image = "#{tmpdir}/#{name}-#{release}.disk"
       sh "ssh dev.dbx.tryphon.priv cat /var/lib/buildbot/dist/#{name}/#{name}-#{release}.disk.gz | gunzip -c > #{disk_image}" unless File.exist?(disk_image)
     end
 
     raise "Can't find #{disk_image}" unless File.exists?(disk_image)
 
-    if partition_mount = mounts.assoc(partition)
-      partition_mount_point = partition_mount[1]
-    else
-      partition_mount_point = "/media/boot"
+    #if partition_mount = mounts.assoc(partition)
+    #  partition_mount_point = partition_mount[1]
+    #else
+      partition_mount_point = "#{tmpdir}/boot"
       #sudo "mkdir #{partition_mount_point}" unless File.exist? partition_mount_point
       #sudo "mount #{partition} #{partition_mount_point}"
-    end
+    #end
 
     #unless File.exists? "#{partition_mount_point}/config.pp"
       $stdout.write "Confirm you want install box image (#{disk_image}) in #{target} [y/N] :"
@@ -100,6 +102,8 @@ class BoxCommand
     sh "echo ',,L,*' | sudo /sbin/sfdisk -f -uS #{target}"
     sudo "mke2fs -j -L boot #{partition}"
 
+    sh "[ -d #{partition_mount_point} ]||mkdir #{partition_mount_point}"
+    
     puts "Copy files"
     sudo "mount #{partition} #{partition_mount_point}"
     mount_disk_image_fs(disk_image) do |dir|
@@ -108,19 +112,20 @@ class BoxCommand
     sudo "umount #{partition_mount_point}"
 
     puts "Install extlinux"
-    sudo "mount #{partition} build/root/boot"
-    sudo "mount proc build/root/proc -t proc"
-    sudo "mount -o bind /dev build/root/dev"
+    sudo "mount #{partition} #{partition_mount_point}"
+    #sudo "mount proc #{partition_mount_point}/proc -t proc"
+    #sudo "mount -o bind /dev #{partition_mount_point}/dev"
 
     begin
-      sudo "chroot build/root /usr/bin/extlinux --install /boot"
+      #sudo "chroot #{tmpdir} /usr/bin/extlinux --install /boot"
+      sudo "/usr/sbin/extlinux --install #{partition_mount_point}"
     ensure
-      sudo "umount build/root/proc"
-      sudo "umount build/root/boot"
-      sudo "umount build/root/dev"
+      #sudo "umount #{tmpdir}/proc"
+      #sudo "umount #{tmpdir}/dev"
+      sudo "umount #{partition_mount_point}"
     end
 
-    sudo "dd if=build/root/usr/lib/syslinux/mbr.bin of=#{target}"
+    sudo "dd if=/usr/lib/syslinux/mbr.bin of=#{target}"
   end
 
   def sh(command)
@@ -138,7 +143,7 @@ class BoxCommand
 
   def mount_disk_image_fs(disk_image)
     mount_dir = "/tmp/mount_boot_fs"
-    sh "mkdir -p /tmp/mount_boot_fs"
+    sh "[ -d #{mount_dir} ]||mkdir -p #{mount_dir}"
     begin
       sudo "mount -o loop,offset=#{64*512} #{disk_image} #{mount_dir}"
       yield mount_dir
