@@ -330,7 +330,7 @@ class SystemBuilder::DebianBoot
     end
 
     def sh(*arguments)
-      FileUtils::sudo "chroot #{image.expand_path('/')} sh -c \"LC_ALL=C #{arguments.join(' ')}\""
+      FileUtils::sudo "chroot #{image.expand_path('/')} sh -c \"export HOME=/root; LC_ALL=C #{arguments.join(' ')}\""
     end
     alias_method :sudo, :sh
 
