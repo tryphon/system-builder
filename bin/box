@@ -20,6 +20,8 @@ OptionParser.new do |opts|
           "The box image to be cloned") { |arg| @options[:image] = arg }
   opts.on("-h", "--host=<host>", String,
           "The host to be upgraded") { |arg| @options[:host] = arg }
+  opts.on("-s", "--skip-format",
+          "Skip partitionning and formatting") { |arg| @options[:skip_format] = true }
   opts.on("-h", "--help",
           "Show this help message.") { puts opts; exit }
   opts.parse!(ARGV)
@@ -98,9 +100,12 @@ class BoxCommand
       exit 1 unless system "sudo umount #{partition}"
     end
 
-    puts "Install filesystem"
-    sh "echo ',,L,*' | sudo /sbin/sfdisk -f -uS #{target}"
-    sudo "mke2fs -j -L boot #{partition}"
+    unless options[:skip_format]
+      puts "Formatting filesystem"
+      sh "echo ',,L,*' | sudo /sbin/sfdisk -f -uS #{target}"
+      sh "grep -q #{partition} /proc/mounts && sudo umount #{partition} || true"
+      sudo "mke2fs -j -L boot #{partition}"
+    end
 
     sh "[ -d #{partition_mount_point} ]||mkdir #{partition_mount_point}"
     
