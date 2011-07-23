@@ -92,7 +92,7 @@ class SystemBuilder::DiskSquashfsImage
           f.puts "LABEL linux"
           f.puts "SAY Now booting #{version} from syslinux ..."
           f.puts "KERNEL /vmlinuz"
-          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs"
+          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs rootdelay=6"
         end
       end
     end
