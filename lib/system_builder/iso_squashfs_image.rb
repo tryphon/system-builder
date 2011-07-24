@@ -49,7 +49,7 @@ class SystemBuilder::IsoSquashfsImage
   end
 
   def make_iso_fs
-    FileUtils::sudo "mkisofs -quiet -R -o #{file} -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -graft-points vmlinuz=#{boot.root}/boot/#{readlink_boot_file('vmlinuz')} initrd.img=#{boot.root}/boot/#{readlink_boot_file('initrd.img')} filesystem.squashfs=build/filesystem.squashfs #{boot.root}/boot"
+    FileUtils::sudo "genisoimage -quiet -R -o #{file} -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -graft-points vmlinuz=#{boot.root}/boot/#{readlink_boot_file('vmlinuz')} initrd.img=#{boot.root}/boot/#{readlink_boot_file('initrd.img')} filesystem.squashfs=build/filesystem.squashfs #{boot.root}/boot"
     FileUtils::sudo "chown $USER #{file}"
   end
   

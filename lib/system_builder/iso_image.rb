@@ -44,7 +44,7 @@ class SystemBuilder::IsoImage
   end
 
   def make_iso_fs
-    FileUtils::sudo "mkisofs -quiet -R -o #{file} -b boot/isolinux/isolinux.bin -c boot/isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -A #{root_fs_label} -V #{root_fs_label} -graft-points -hide build/root/initrd.img -hide build/root/vmlinuz vmlinuz=#{boot.root}/boot/#{readlink_boot_file('vmlinuz')} initrd.img=#{boot.root}/boot/#{readlink_boot_file('initrd.img')} #{boot.root}"
+    FileUtils::sudo "genisoimage -quiet -R -o #{file} -b boot/isolinux/isolinux.bin -c boot/isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -A #{root_fs_label} -V #{root_fs_label} -graft-points -hide build/root/initrd.img -hide build/root/vmlinuz vmlinuz=#{boot.root}/boot/#{readlink_boot_file('vmlinuz')} initrd.img=#{boot.root}/boot/#{readlink_boot_file('initrd.img')} #{boot.root}"
     FileUtils::sudo "chown $USER #{file}"
   end
 
