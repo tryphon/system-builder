@@ -26,7 +26,7 @@ for device in `list_devices`; do
     echo "check if $device ($fs_type) is the boot image"
 
     case $fs_type in
-        ext3|iso9660)
+        ext2|ext3|iso9660)
             mount -r -t $fs_type $device /boot
             if [ -f "/boot/config.pp" ]; then
                 exit 0

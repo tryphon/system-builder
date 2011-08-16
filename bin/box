@@ -18,7 +18,7 @@ OptionParser.new do |opts|
           "The target to clone an image") { |arg| @options[:target] = arg }
   opts.on("-i", "--image=<disk image>", String,
           "The box image to be cloned") { |arg| @options[:image] = arg }
-  opts.on("-h", "--host=<host>", String,
+  opts.on("-o", "--host=<host>", String,
           "The host to be upgraded") { |arg| @options[:host] = arg }
   opts.on("-s", "--skip-format",
           "Skip partitionning and formatting") { |arg| @options[:skip_format] = true }
@@ -76,7 +76,7 @@ class BoxCommand
       name = $1
       release = $2
       disk_image = "#{tmpdir}/#{name}-#{release}.disk"
-      sh "ssh dev.dbx.tryphon.priv cat /var/lib/buildbot/dist/#{name}/#{name}-#{release}.disk.gz | gunzip -c > #{disk_image}" unless File.exist?(disk_image)
+      sh "ssh dev.tryphon.priv cat /var/lib/buildbot/dist/#{name}/#{name}-#{release}.disk.gz | gunzip -c > #{disk_image}" unless File.exist?(disk_image)
     end
 
     raise "Can't find #{disk_image}" unless File.exists?(disk_image)
@@ -104,7 +104,7 @@ class BoxCommand
       puts "Formatting filesystem"
       sh "echo ',,L,*' | sudo /sbin/sfdisk -f -uS #{target}"
       sh "grep -q #{partition} /proc/mounts && sudo umount #{partition} || true"
-      sudo "mke2fs -j -L boot #{partition}"
+      sudo "mke2fs -L boot #{partition}"
     end
 
     sh "[ -d #{partition_mount_point} ]||mkdir #{partition_mount_point}"
