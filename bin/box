@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'optparse'
+require 'tmpdir'
 
 @options = {}
 OptionParser.new do |opts|
@@ -22,6 +23,8 @@ OptionParser.new do |opts|
           "The host to be upgraded") { |arg| @options[:host] = arg }
   opts.on("-s", "--skip-format",
           "Skip partitionning and formatting") { |arg| @options[:skip_format] = true }
+  opts.on("-n", "--dry-run",
+          "Dry run mode") { |arg| @options[:dry_run] = true }
   opts.on("-h", "--help",
           "Show this help message.") { puts opts; exit }
   opts.parse!(ARGV)
@@ -31,6 +34,21 @@ OptionParser.new do |opts|
   unless %w{boot clone upgrade}.include? @command
     puts opts; exit
   end
+end
+
+module SystemTools
+
+  def sh(command)
+    puts "* #{command}"
+    unless @dry_run
+      raise "command failed: '#{command}'" unless system command
+    end
+  end
+
+  def sudo(command)
+    sh "sudo #{command}"
+  end
+
 end
 
 class BoxCommand
@@ -56,105 +74,124 @@ class BoxCommand
 
     qemu_options << "-net nic -net vde,sock=/var/run/vde2/tap0.ctl"
 
+    memory = (ENV['MEMORY'] or "512")
+
     ENV['QEMU_AUDIO_DRV']='alsa'
 
-    qemu_command = "qemu -enable-kvm -m 512m -soundhw ac97 #{qemu_options.join(' ')}"
+    qemu_command = "qemu -enable-kvm -m #{memory}m -soundhw ac97 #{qemu_options.join(' ')}"
 
     puts "Run #{qemu_command}"
     system qemu_command
   end
 
-  def clone(options = {})
-    target = (options[:target] or "/dev/sdb")
-    disk_image = (options[:image] or "dist/disk")
-    partition = "#{target}1"
-    tmpdir = "/tmp/dist"
+  class Cloner
+    include SystemTools
 
-    sh "[ -d #{tmpdir} ]||mkdir #{tmpdir}"
-    if disk_image =~ /([a-z]+box)-(\d+-\d+)/
-      # like pigebox-20101014-1155
-      name = $1
-      release = $2
-      disk_image = "#{tmpdir}/#{name}-#{release}.disk"
-      sh "ssh dev.tryphon.priv cat /var/lib/buildbot/dist/#{name}/#{name}-#{release}.disk.gz | gunzip -c > #{disk_image}" unless File.exist?(disk_image)
+    attr_accessor :target, :image, :dry_run, :skip_format
+
+    def initialize(options = {}) 
+      options = { :target => "/dev/sdb", :image => "dist/disk" }.merge options
+      options.each { |k,v| send "#{k}=", v }
     end
 
-    raise "Can't find #{disk_image}" unless File.exists?(disk_image)
-
-    #if partition_mount = mounts.assoc(partition)
-    #  partition_mount_point = partition_mount[1]
-    #else
-      partition_mount_point = "#{tmpdir}/boot"
-      #sudo "mkdir #{partition_mount_point}" unless File.exist? partition_mount_point
-      #sudo "mount #{partition} #{partition_mount_point}"
-    #end
-
-    #unless File.exists? "#{partition_mount_point}/config.pp"
-      $stdout.write "Confirm you want install box image (#{disk_image}) in #{target} [y/N] :"
-      $stdout.flush
-      exit 1 unless $stdin.read(1).downcase == 'y'
-    #end
-
-    if mounts.assoc(partition)
-      puts "Unmount #{target}"
-      exit 1 unless system "sudo umount #{partition}"
+    def partition
+      "#{target}1"
     end
 
-    unless options[:skip_format]
+    def mounts
+      IO.readlines("/proc/mounts").map { |m| m.scan(/\S+/) }
+    end
+
+    def mount(volume, options = {}, &block)
+      name = File.basename(volume)
+
+      unless target = options.delete(:target)
+        Dir.mktmpdir("#{name}-") do |target|
+          mount volume, {:target => target}.merge(options), &block
+        end
+        return
+      end
+
+      name = File.basename(volume)
+      mount_options = options.collect do |pair|
+        [ pair - [true] ].join('=')
+      end.join(',')
+
+      mount_options = "-o #{mount_options}" unless mount_options.empty?
+
+      begin
+        sudo "mount #{mount_options} #{volume} #{target}"
+        yield target
+      ensure
+        sudo "umount #{target}"
+      end
+    end
+
+    def mount_image
+      mount(image, :loop => true, :offset => 64*512) do |mount_dir|
+        yield mount_dir
+      end
+    end
+
+    def chroot(root, command)
+      sudo "mount proc #{root}/proc -t proc"
+      sudo "mount -o bind /dev #{root}/dev"
+
+      begin
+        sudo "chroot #{root} #{command}"
+      ensure
+        sudo "umount #{root}/proc"
+        sudo "umount #{root}/dev"
+      end
+    end
+
+    def clone
+      puts "Dry run mode" if dry_run
+      confirm
+      format unless skip_format
+      copy
+      extlinux
+    end
+
+    def extlinux
+      mount(partition) do |partition_mount|
+        mount("#{partition_mount}/filesystem.squashfs", :loop => true) do |root|
+          mount(partition_mount, :bind => true, :target => "#{root}/boot") do
+            chroot root, "/usr/sbin/extlinux --install /boot"
+          end
+        end
+      end
+
+      # Required ?
+      # sudo "dd if=/usr/lib/syslinux/mbr.bin of=#{target}"
+    end
+
+    def copy
+      puts "Copy files"
+      mount_image do |image_mount|
+        mount(partition) do |partition_mount|
+          sudo "rsync -av #{image_mount}/ #{partition_mount}/"
+        end
+      end
+    end
+
+    def format
       puts "Formatting filesystem"
       sh "echo ',,L,*' | sudo /sbin/sfdisk -f -uS #{target}"
       sh "grep -q #{partition} /proc/mounts && sudo umount #{partition} || true"
       sudo "mke2fs -L boot #{partition}"
     end
 
-    sh "[ -d #{partition_mount_point} ]||mkdir #{partition_mount_point}"
-    
-    puts "Copy files"
-    sudo "mount #{partition} #{partition_mount_point}"
-    mount_disk_image_fs(disk_image) do |dir|
-      sudo "rsync -av #{dir}/ #{partition_mount_point}/"
-    end
-    sudo "umount #{partition_mount_point}"
-
-    puts "Install extlinux"
-    sudo "mount #{partition} #{partition_mount_point}"
-    #sudo "mount proc #{partition_mount_point}/proc -t proc"
-    #sudo "mount -o bind /dev #{partition_mount_point}/dev"
-
-    begin
-      #sudo "chroot #{tmpdir} /usr/bin/extlinux --install /boot"
-      sudo "/usr/sbin/extlinux --install #{partition_mount_point}"
-    ensure
-      #sudo "umount #{tmpdir}/proc"
-      #sudo "umount #{tmpdir}/dev"
-      sudo "umount #{partition_mount_point}"
+    def confirm
+      $stdout.write "Confirm you want install box image (#{image}) in #{target} [y/N] :"
+      $stdout.flush
+      exit 1 unless $stdin.read(1).downcase == 'y'
     end
 
-    sudo "dd if=/usr/lib/syslinux/mbr.bin of=#{target}"
   end
 
-  def sh(command)
-    puts "Run #{command}"
-    raise "command failed: '#{command}'" unless system command
-  end
-
-  def sudo(command)
-    sh "sudo #{command}"
-  end
-
-  def mounts
-    IO.readlines("/proc/mounts").map { |m| m.scan(/\S+/) }
-  end
-
-  def mount_disk_image_fs(disk_image)
-    mount_dir = "/tmp/mount_boot_fs"
-    sh "[ -d #{mount_dir} ]||mkdir -p #{mount_dir}"
-    begin
-      sudo "mount -o loop,offset=#{64*512} #{disk_image} #{mount_dir}"
-      yield mount_dir
-    ensure
-      sudo "umount #{mount_dir}"
-    end
+  def clone(options = {})
+    Cloner.new(options).clone
   end
 
   def upgrade(options = {})
