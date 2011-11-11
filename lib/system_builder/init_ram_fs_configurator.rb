@@ -1,8 +1,13 @@
 class SystemBuilder::InitRamFsConfigurator 
 
-  def configure(chroot)
+  def configure(chroot, options = {})
+    debian_release = (options.delete(:debian_release) or :lenny)
+
     puts "* install initramfs-tools"
-    chroot.apt_install %w{initramfs-tools syslinux}
+
+    packages = %w{initramfs-tools syslinux}
+    packages << "extlinux" unless debian_release == :lenny
+    chroot.apt_install packages
 
     install_script(chroot, "local-top/mount_boot") do |f|
       f.puts "modprobe loop"
@@ -33,7 +38,7 @@ class SystemBuilder::InitRamFsConfigurator
 
   @@script_header = <<EOF
 #!/bin/sh -x
-if [ "$1" == "prereqs" ]; then
+if [ "$1" = "prereqs" ]; then
   echo ""; exit 0;
 fi
 EOF

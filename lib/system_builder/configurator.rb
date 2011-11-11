@@ -6,7 +6,7 @@ module SystemBuilder
       @proc = (proc or block)
     end
 
-    def configure(chroot)
+    def configure(chroot, options = {})
       @proc.call chroot
     end
 
@@ -25,19 +25,25 @@ module SystemBuilder
       %w{manifests files modules templates plugins}.collect { |d| "#{manifest}/#{d}" }.select { |d| File.directory?(d) }
     end
 
-    def configure(chroot)
+    def configure(chroot, options = {})
+      debian_release = (options.delete(:debian_release) or :lenny)
+
       puts "* run puppet configuration"
 
-      unless chroot.image.exists?("/etc/apt/sources.list.d/lenny-backports.list")
-        chroot.image.open("/etc/apt/sources.list.d/lenny-backports.list") do |f|
-          f.puts "deb http://backports.debian.org/debian-backports lenny-backports main contrib non-free"
+      unless chroot.image.exists?("/etc/apt/sources.list.d/#{debian_release}-backports.list")
+        chroot.image.open("/etc/apt/sources.list.d/#{debian_release}-backports.list") do |f|
+          f.puts "deb http://backports.debian.org/debian-backports #{debian_release}-backports main contrib non-free"
         end
 
         chroot.image.open("/etc/apt/preferences") do |f|
           f.puts "Package: puppet"
-          f.puts "Pin: release a=lenny-backports"
+          f.puts "Pin: release a=#{debian_release}-backports"
           f.puts "Pin-Priority: 999"
-        end
+
+          f.puts "Package: puppet-common"
+          f.puts "Pin: release a=#{debian_release}-backports"
+          f.puts "Pin-Priority: 999"
+        end if debian_release == :lenny
         
         chroot.sudo "apt-get update"
       end

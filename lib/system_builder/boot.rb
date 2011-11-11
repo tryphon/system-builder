@@ -67,7 +67,7 @@ class SystemBuilder::DebianBoot
     unless @configurators.empty?
       chroot do |chroot|
         @configurators.each do |configurator|
-          configurator.configure(chroot)
+          configurator.configure chroot, :debian_release => version
         end
       end
     end
@@ -188,7 +188,7 @@ class SystemBuilder::DebianBoot
       end
     end
 
-    def configure(chroot)
+    def configure(chroot, options = {})
       rewrite_sources_url(chroot)
       update(chroot)
       configure_proxy(chroot)

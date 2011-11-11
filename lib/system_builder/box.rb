@@ -19,16 +19,18 @@ class SystemBuilder::Box
   end
 
   def boot
-    @boot ||= SystemBuilder::DebianBoot.new(root_file).tap do |boot|
-      boot.configurators << puppet_configurator
-    end
+    @boot ||= SystemBuilder::DebianBoot.new(root_file)
+    unless @boot_configurated
+      @boot_configurated = true
 
-    yield @boot if block_given?
+      yield @boot if block_given?
+      @boot.configurators << puppet_configurator
+    end
     @boot
   end
 
   def puppet_configurator
-    @puppet_configurator ||= SystemBuilder::PuppetConfigurator.new :release_name => release_name
+    @puppet_configurator ||= SystemBuilder::PuppetConfigurator.new :release_name => release_name, :debian_release => boot.version
     yield @puppet_configurator if block_given?
     @puppet_configurator
   end
