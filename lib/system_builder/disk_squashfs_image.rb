@@ -27,6 +27,8 @@ class SystemBuilder::DiskSquashfsImage
 
     compress_root_fs
     install_extlinux
+    compute_checksums
+    #create_boxuser_homedir
 
     self
   end
@@ -63,7 +65,7 @@ class SystemBuilder::DiskSquashfsImage
   end
 
   def compress_root_fs
-    FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e /boot"
+    FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e #{boot.root}/boot"
     FileUtils::sudo "chown #{ENV['USER']} build/filesystem.squashfs && chmod +r build/filesystem.squashfs"
     
     mount_boot_fs do |mount_dir|
@@ -105,6 +107,24 @@ class SystemBuilder::DiskSquashfsImage
       end
     end
     FileUtils::sh "dd if=#{boot.root}/usr/lib/syslinux/mbr.bin of=#{file} conv=notrunc"
+  end
+
+  def create_boxuser_homedir
+    puts "** boxuser home directory creation"
+    mount_boot_fs do |mount_dir|
+      FileUtils::cd("#{mount_dir}") do
+			  sudo "mkdir -p boxuser/.ssh"
+        sudo "chown -R boxuser:boxuser boxuser"
+      end
+    end
+  end
+
+  def compute_checksums
+    mount_boot_fs do |mount_dir|
+      FileUtils::cd("#{mount_dir}") do
+        FileUtils::sh"md5sum * |sudo tee MD5SUM"
+      end 
+    end
   end
 
   def fs_label
