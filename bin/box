@@ -23,6 +23,8 @@ OptionParser.new do |opts|
           "The host to be upgraded") { |arg| @options[:host] = arg }
   opts.on("-s", "--skip-format",
           "Skip partitionning and formatting") { |arg| @options[:skip_format] = true }
+  opts.on("-e", "--external-extlinux",
+          "Don't use extlinux provided by image") { |arg| @options[:external_extlinux] = true }
   opts.on("-n", "--dry-run",
           "Dry run mode") { |arg| @options[:dry_run] = true }
   opts.on("-h", "--help",
@@ -88,7 +90,7 @@ class BoxCommand
   class Cloner
     include SystemTools
 
-    attr_accessor :target, :image, :dry_run, :skip_format
+    attr_accessor :target, :image, :dry_run, :skip_format, :external_extlinux
 
     def initialize(options = {}) 
       options = { :target => "/dev/sdb", :image => "dist/disk" }.merge options
@@ -157,7 +159,15 @@ class BoxCommand
 
     def extlinux
       mount(partition) do |partition_mount|
-        sudo "/usr/sbin/extlinux --install #{partition_mount}"
+        if external_extlinux
+          sudo "/usr/sbin/extlinux --install #{partition_mount}"
+        else
+          mount("#{partition_mount}/filesystem.squashfs", :loop => true) do |root|
+            mount(partition_mount, :bind => true, :target => "#{root}/boot") do
+              chroot root, "/usr/sbin/extlinux --install /boot"
+            end
+          end
+        end
       end
 
       # Required ?
