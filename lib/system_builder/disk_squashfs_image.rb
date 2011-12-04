@@ -28,7 +28,6 @@ class SystemBuilder::DiskSquashfsImage
     compress_root_fs
     install_extlinux
     compute_checksums
-    #create_boxuser_homedir
 
     self
   end
@@ -107,16 +106,6 @@ class SystemBuilder::DiskSquashfsImage
       end
     end
     FileUtils::sh "dd if=#{boot.root}/usr/lib/syslinux/mbr.bin of=#{file} conv=notrunc"
-  end
-
-  def create_boxuser_homedir
-    puts "** boxuser home directory creation"
-    mount_boot_fs do |mount_dir|
-      FileUtils::cd("#{mount_dir}") do
-			  sudo "mkdir -p boxuser/.ssh"
-        sudo "chown -R boxuser:boxuser boxuser"
-      end
-    end
   end
 
   def compute_checksums
