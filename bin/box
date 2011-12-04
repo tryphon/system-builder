@@ -52,6 +52,7 @@ module SystemTools
 end
 
 class BoxCommand
+  include SystemTools
 
   def boot(options = {})
     qemu_options = []
