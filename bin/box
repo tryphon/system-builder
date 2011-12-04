@@ -151,20 +151,28 @@ class BoxCommand
       confirm
       format unless skip_format
       copy
+      boxuser_homedir
       extlinux
     end
 
     def extlinux
       mount(partition) do |partition_mount|
-        mount("#{partition_mount}/filesystem.squashfs", :loop => true) do |root|
-          mount(partition_mount, :bind => true, :target => "#{root}/boot") do
-            chroot root, "/usr/sbin/extlinux --install /boot"
-          end
-        end
+        sudo "/usr/sbin/extlinux --install #{partition_mount}"
       end
 
       # Required ?
       # sudo "dd if=/usr/lib/syslinux/mbr.bin of=#{target}"
+    end
+
+    def boxuser_homedir
+      mount(partition) do |partition_mount|
+        mount("#{partition_mount}/filesystem.squashfs", :loop => true) do |root|
+          mount(partition_mount, :bind => true, :target => "#{root}/boot") do
+            chroot root, "mkdir -p /boot/boxuser/.ssh"
+            chroot root, "chown -R boxuser:boxuser /boot/boxuser"
+          end
+        end
+      end
     end
 
     def copy
@@ -180,7 +188,7 @@ class BoxCommand
       puts "Formatting filesystem"
       sh "echo ',,L,*' | sudo /sbin/sfdisk -f -uS #{target}"
       sh "grep -q #{partition} /proc/mounts && sudo umount #{partition} || true"
-      sudo "mke2fs -L boot #{partition}"
+      sudo "mke2fs -j -L boot #{partition}"
     end
 
     def confirm
