@@ -39,10 +39,6 @@ module SystemBuilder
           f.puts "Package: puppet"
           f.puts "Pin: release a=#{debian_release}-backports"
           f.puts "Pin-Priority: 999"
-
-          f.puts "Package: puppet-common"
-          f.puts "Pin: release a=#{debian_release}-backports"
-          f.puts "Pin-Priority: 999"
         end if debian_release == :lenny
         
         chroot.sudo "apt-get update"
@@ -56,7 +52,7 @@ module SystemBuilder
       unless File.directory?(manifest)
         chroot.image.install "/tmp/puppet.pp", manifest
         # chmod +r to make file readable for buildbot
-        chroot.sudo "puppet --color=false tmp/puppet.pp | tee /tmp/puppet.log && chmod +r /tmp/puppet.log"
+        chroot.sudo "puppet --color=false tmp/puppet.pp 2>&1 | tee /tmp/puppet.log && chmod +r /tmp/puppet.log"
         process_log_file(chroot.image.expand_path("/tmp/puppet.log"))
       else
         context_dir = "/tmp/puppet"
@@ -80,7 +76,7 @@ module SystemBuilder
         end
 
         chroot.image.mkdir "#{context_dir}/tmp"
-        chroot.sudo "puppet --color=false --modulepath '#{context_dir}/modules' --confdir='#{context_dir}/config' --templatedir='#{context_dir}/templates' --manifestdir='#{context_dir}/manifests' --vardir=#{context_dir}/tmp '#{context_dir}/manifests/site.pp' | tee #{context_dir}/puppet.log"
+        chroot.sudo "puppet --color=false --modulepath '#{context_dir}/modules' --confdir='#{context_dir}/config' --templatedir='#{context_dir}/templates' --manifestdir='#{context_dir}/manifests' --vardir=#{context_dir}/tmp '#{context_dir}/manifests/site.pp' 2>&1 | tee #{context_dir}/puppet.log"
 
         process_log_file(chroot.image.expand_path("#{context_dir}/puppet.log"))
       end
@@ -88,7 +84,7 @@ module SystemBuilder
 
     def process_log_file(log_file)
       FileUtils.cp log_file, "puppet.log"
-      unless File.readlines("puppet.log").grep(/^err:/).empty?
+      unless File.readlines("puppet.log").grep(/^(err:|Could not parse for environment production)/).empty?
         raise "Error(s) during puppet configuration, see puppet.log file"
       end
     end
