@@ -2,6 +2,15 @@ require 'rake/tasklib'
 
 class SystemBuilder::BoxTasks < Rake::TaskLib
 
+  # FIXME we can't count box instances .. the first box doesn't "see" next ones
+  @@multiple_boxes = nil
+  def self.multiple_boxes=(multiple_boxes)
+    @@multiple_boxes = multiple_boxes
+  end
+  def self.multiple_boxes?
+    @@multiple_boxes
+  end
+
   attr_reader :box
 
   def initialize(box, &block)
@@ -13,6 +22,8 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
       else
         box
       end
+
+    @box.named_mode = self.class.multiple_boxes?
 
     yield @box if block_given?
 
@@ -34,6 +45,10 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
       desc "Shortcut for dist:disk task"
       task :dist => "dist:disk"
 
+      task :inspect do
+        puts box.inspect
+      end
+
       namespace :dist do
         desc "Create disk image in #{box.disk_file}"
         task :disk do
@@ -54,12 +69,12 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         task :upgrade do
           rm_rf box.upgrade_directory
           mkdir_p box.upgrade_directory
-          ln_s File.expand_path("build/filesystem.squashfs"), "#{box.upgrade_directory}/filesystem-#{box.release_name}.squashfs"
+          ln_s File.expand_path("#{build.build_dir}/filesystem.squashfs"), "#{box.upgrade_directory}/filesystem-#{box.release_name}.squashfs"
           ln_s File.expand_path("#{box.root_file}/vmlinuz"), "#{box.upgrade_directory}/vmlinuz-#{box.release_name}"
           ln_s File.expand_path("#{box.root_file}/initrd.img"), "#{box.upgrade_directory}/initrd-#{box.release_name}.img"
-          sh "tar -cf #{box.upgrade_file} --dereference -C #{box.upgrade_directory} ."
+          FileUtils::sh "tar -cf #{box.upgrade_file} --dereference -C #{box.upgrade_directory} ."
 
-          box.create_latest_file "dist/latest.yml"
+          box.create_latest_file "#{box.dist_dir}/latest.yml"
         end
 
         desc "Create all images (disk, iso and upgrade)"
@@ -82,20 +97,20 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
       desc "Clean build and dist directories"
       task :clean do
         unless File.exists?(box.root_file) and system "sudo fuser $PWD/#{box.root_file}"
-          sh "sudo rm -rf #{box.root_file}"
+          sudo "rm -rf #{box.root_file}"
         end
-        sh "rm -rf build/upgrade"
-        sh "rm -f build/*"
-        sh "rm -rf dist/*"
+        FileUtils::sh "rm -rf #{box.upgrade_directory}"
+        FileUtils::sh "rm -f #{box.build_dir}/*"
+        FileUtils::sh "rm -rf #{box.dist_dir}/*"
       end
 
       task :buildbot => [:clean, "dist:all", "buildbot:dist"] do
         # clean in dependencies is executed only once
-        sh "rake #{box.name}:clean"
+        FileUtils::sh "rake #{box.name}:clean"
       end
 
       def latest_release_number
-        YAML.load(IO.read("dist/latest.yml"))["name"].gsub("#{box.name}-","") if File.exists?("dist/latest.yml")
+        YAML.load(IO.read(box.latest_file))["name"].gsub("#{box.name}-","") if File.exists?(box.latest_file)
       end
 
       namespace :buildbot do
@@ -108,7 +123,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
           cp box.iso_file, "#{target_directory}/#{box.name}-#{release_number}.iso"
           cp box.upgrade_file, "#{target_directory}/#{box.name}-#{release_number}.tar"
 
-          cp "dist/latest.yml", "#{target_directory}/latest.yml"
+          cp box.latest_file, "#{target_directory}/latest.yml"
         end
       end
 

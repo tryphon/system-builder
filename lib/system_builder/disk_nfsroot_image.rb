@@ -72,7 +72,7 @@ class SystemBuilder::DiskNfsRootImage
     root = (options[:root] or "LABEL=#{fs_label}")
     version = (options[:version] or Time.now.strftime("%Y%m%d%H%M"))
     nfssvr = %x{/sbin/ip link show|grep -e "eth.:"|cut -d' ' -f 2|cut -d':' -f 1|xargs ip addr show|grep "inet "|cut -d' ' -f 6|cut -d'/' -f 1}.strip
-    nfsroot = %x{readlink -f build/root}.strip
+    nfsroot = %x{readlink -f #{boot.root}}.strip
     nfsopt = (options[:nfsroot] or "#{nfssvr}:#{nfsroot}")
 
     mount_boot_fs do |mount_dir|

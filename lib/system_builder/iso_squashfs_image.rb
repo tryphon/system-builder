@@ -20,10 +20,20 @@ class SystemBuilder::IsoSquashfsImage
     self
   end
 
+  attr_accessor :build_dir
+
+  def build_dir
+    @build_dir ||= "build"
+  end 
+
+  def squashfs_file
+    "#{build_dir}/filesystem.squashfs"
+  end
+
   def compress_root_fs
-    unless File.exists?("build/filesystem.squashfs")
-      FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e /boot"
-      FileUtils::sudo "chown #{ENV['USER']} build/filesystem.squashfs && chmod +r build/filesystem.squashfs"
+    unless File.exists?("#{squashfs_file}")
+      FileUtils::sudo "mksquashfs #{boot.root}/ #{squashfs_file} -noappend -e /boot"
+      FileUtils::sudo "chown #{ENV['USER']} #{squashfs_file} && chmod +r #{squashfs_file}"
     end
   end
 
@@ -49,7 +59,7 @@ class SystemBuilder::IsoSquashfsImage
   end
 
   def make_iso_fs
-    FileUtils::sudo "genisoimage -quiet -R -o #{file} -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -graft-points vmlinuz=#{boot.root}/boot/#{readlink_boot_file('vmlinuz')} initrd.img=#{boot.root}/boot/#{readlink_boot_file('initrd.img')} filesystem.squashfs=build/filesystem.squashfs #{boot.root}/boot"
+    FileUtils::sudo "genisoimage -quiet -R -o #{file} -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -graft-points vmlinuz=#{boot.root}/boot/#{readlink_boot_file('vmlinuz')} initrd.img=#{boot.root}/boot/#{readlink_boot_file('initrd.img')} filesystem.squashfs=#{squashfs_file} #{boot.root}/boot"
     FileUtils::sudo "chown $USER #{file}"
   end
   

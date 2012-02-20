@@ -63,12 +63,22 @@ class SystemBuilder::DiskSquashfsImage
     end
   end
 
+  attr_accessor :build_dir
+
+  def build_dir
+    @build_dir ||= "build"
+  end 
+
+  def squashfs_file
+    "#{build_dir}/filesystem.squashfs"
+  end
+
   def compress_root_fs
-    FileUtils::sudo "mksquashfs #{boot.root}/ build/filesystem.squashfs -noappend -e #{boot.root}/boot"
-    FileUtils::sudo "chown #{ENV['USER']} build/filesystem.squashfs && chmod +r build/filesystem.squashfs"
+    FileUtils::sudo "mksquashfs #{boot.root}/ #{squashfs_file} -noappend -e #{boot.root}/boot"
+    FileUtils::sudo "chown #{ENV['USER']} #{squashfs_file} && chmod +r #{squashfs_file}"
     
     mount_boot_fs do |mount_dir|
-      FileUtils::sudo "cp build/filesystem.squashfs #{mount_dir}/filesystem.squashfs"
+      FileUtils::sudo "cp #{squashfs_file} #{mount_dir}/filesystem.squashfs"
     end
     FileUtils.touch file
   end

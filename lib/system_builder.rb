@@ -20,7 +20,6 @@ end
 require 'system_builder/version'
 require 'system_builder/core_ext'
 require 'system_builder/disk_image'
-require 'system_builder/iso_image'
 require 'system_builder/live_image'
 require 'system_builder/init_ram_fs_configurator'
 require 'system_builder/disk_squashfs_image'

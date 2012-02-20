@@ -39,6 +39,8 @@ class String
 
 end
 
+# require 'rake/file_utils'
+
 module FileUtils
 
   def sh(*cmd)

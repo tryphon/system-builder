@@ -14,8 +14,19 @@ class SystemBuilder::Box
     @release_name ||= "#{name}-#{release_number}"
   end
 
+  attr_accessor :named_mode
+  alias_method :named_mode?, :named_mode
+
+  def build_dir
+    named_mode? ? "build/#{name}" : "build"
+  end
+
+  def dist_dir
+    named_mode? ? "dist/#{name}" : "dist"
+  end 
+
   def root_file
-    "build/root"
+    "#{build_dir}/root"
   end
 
   def boot
@@ -30,26 +41,27 @@ class SystemBuilder::Box
   end
 
   def puppet_configurator
-    @puppet_configurator ||= SystemBuilder::PuppetConfigurator.new :release_name => release_name, :debian_release => boot.version
+    @puppet_configurator ||= SystemBuilder::PuppetConfigurator.new :box_name => name, :release_name => release_name, :debian_release => boot.version
     yield @puppet_configurator if block_given?
     @puppet_configurator
   end
 
   def disk_file
-    "dist/disk"
+    "#{dist_dir}/disk"
   end
 
   def disk_image
     @disk_image ||= SystemBuilder::DiskSquashfsImage.new(disk_file).tap do |image|
       image.boot = boot
       image.size = 200.megabytes
+      image.build_dir = build_dir
     end
     yield @disk_image if block_given?
     @disk_image
   end
 
   def iso_file
-    "dist/iso"
+    "#{dist_dir}/iso"
   end
 
   def iso_image
@@ -61,7 +73,7 @@ class SystemBuilder::Box
   end
 
   def nfs_file
-    "dist/nfs"
+    "#{dist_dir}/nfs"
   end
 
   def nfs_image
@@ -73,18 +85,18 @@ class SystemBuilder::Box
   end
 
   def upgrade_directory
-    "build/upgrade"
+    "#{build_dir}/upgrade"
   end
 
   def upgrade_file
-    "dist/upgrade.tar"
+    "#{dist_dir}/upgrade.tar"
   end
 
   def upgrade_checksum
     `sha256sum #{upgrade_file}`.split.first
   end
 
-  def create_latest_file(latest_file)
+  def create_latest_file(latest_file = latest_file)
     File.open(latest_file, "w") do |f|
       f.puts "name: #{release_name}"
       f.puts "url: http://download.tryphon.eu/#{name}/#{name}-#{release_number}.tar"
@@ -92,6 +104,10 @@ class SystemBuilder::Box
       f.puts "status_updated_at: #{Time.now}"
       f.puts "description_url: http://www.tryphon.eu/release/#{release_name}"
     end
+  end
+
+  def latest_file
+    "{dist_dir}/latest.yml"
   end
 
 end
