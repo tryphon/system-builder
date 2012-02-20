@@ -25,6 +25,10 @@ OptionParser.new do |opts|
           "Skip partitionning and formatting") { |arg| @options[:skip_format] = true }
   opts.on("-e", "--external-extlinux",
           "Don't use extlinux provided by image") { |arg| @options[:external_extlinux] = true }
+  opts.on("-b", "--name=<box name>", String,
+          "The box name") { |arg| @options[:name] = arg }
+  opts.on("-m", "--mac-index=<index>", Integer,
+          "An numeric index uses to choose mac") { |arg| @options[:mac_index] = arg }
   opts.on("-n", "--dry-run",
           "Dry run mode") { |arg| @options[:dry_run] = true }
   opts.on("-h", "--help",
@@ -61,21 +65,27 @@ class BoxCommand
 
     qemu_disks = []
 
+    dist_dir = ["dist", options[:name]].compact.join("/")
+
     case options[:root]
     when "iso"
-      qemu_options << "-cdrom dist/iso"
+      qemu_options << "-cdrom #{dist_dir}/iso"
       qemu_options << "--boot order=d"
     else
-      qemu_disks << "dist/disk"
+      qemu_disks << "#{dist_dir}/disk"
     end
 
-    qemu_disks.push *Dir["dist/storage*"]
+    qemu_disks.push *Dir["#{dist_dir}/storage*"]
 
     qemu_disks.each_with_index do |disk, index|
       qemu_options << "-drive file=#{disk},if=ide,index=#{index+1},media=disk"
     end
 
-    qemu_options << "-net nic -net vde,sock=/var/run/vde2/tap0.ctl"
+    mac_address_base = "52:54:00:12:34:"
+    mac_address_index = (options[:mac_index] or 0)
+    mac_address = "52:54:00:12:34:#{56+mac_address_index}"
+    
+    qemu_options << "-net nic,macaddr=#{mac_address} -net vde,sock=/var/run/vde2/tap0.ctl"
 
     memory = (ENV['MEMORY'] or "512")
 
