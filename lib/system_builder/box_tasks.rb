@@ -69,7 +69,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         task :upgrade do
           rm_rf box.upgrade_directory
           mkdir_p box.upgrade_directory
-          ln_s File.expand_path("#{build.build_dir}/filesystem.squashfs"), "#{box.upgrade_directory}/filesystem-#{box.release_name}.squashfs"
+          ln_s File.expand_path("#{box.build_dir}/filesystem.squashfs"), "#{box.upgrade_directory}/filesystem-#{box.release_name}.squashfs"
           ln_s File.expand_path("#{box.root_file}/vmlinuz"), "#{box.upgrade_directory}/vmlinuz-#{box.release_name}"
           ln_s File.expand_path("#{box.root_file}/initrd.img"), "#{box.upgrade_directory}/initrd-#{box.release_name}.img"
           FileUtils::sh "tar -cf #{box.upgrade_file} --dereference -C #{box.upgrade_directory} ."
