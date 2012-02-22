@@ -44,7 +44,7 @@ module SystemBuilder
         chroot.sudo "apt-get update"
       end
 
-      chroot.apt_install :puppet
+      chroot.apt_install :puppet, :rubygems
       chroot.image.open("/etc/default/puppet") do |f|
         f.puts "START=no"
       end
