@@ -76,7 +76,9 @@ module SystemBuilder
         end
 
         chroot.image.mkdir "#{context_dir}/tmp"
-        chroot.sudo "puppet --color=false --modulepath '#{context_dir}/modules' --confdir='#{context_dir}/config' --templatedir='#{context_dir}/templates' --manifestdir='#{context_dir}/manifests' --vardir=#{context_dir}/tmp '#{context_dir}/manifests/site.pp' 2>&1 | tee #{context_dir}/puppet.log"
+
+        debian_options = "export DEBIAN_SCRIPT_DEBUG=1;" if ENV['DEBIAN_SCRIPT_DEBUG']
+        chroot.sudo "#{debian_options} puppet --color=false --modulepath '#{context_dir}/modules' --confdir='#{context_dir}/config' --templatedir='#{context_dir}/templates' --manifestdir='#{context_dir}/manifests' --vardir=#{context_dir}/tmp '#{context_dir}/manifests/site.pp' 2>&1 | tee #{context_dir}/puppet.log"
 
         process_log_file(chroot.image.expand_path("#{context_dir}/puppet.log"))
       end
