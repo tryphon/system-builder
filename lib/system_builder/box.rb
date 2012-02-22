@@ -67,6 +67,7 @@ class SystemBuilder::Box
   def iso_image
     @iso_image ||= SystemBuilder::IsoSquashfsImage.new(iso_file).tap do |image|
       image.boot = boot
+      image.build_dir = build_dir
     end
     yield @iso_image if block_given?
     @iso_image
