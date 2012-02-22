@@ -108,7 +108,7 @@ class SystemBuilder::Box
   end
 
   def latest_file
-    "{dist_dir}/latest.yml"
+    "#{dist_dir}/latest.yml"
   end
 
 end
