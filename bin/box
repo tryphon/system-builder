@@ -81,7 +81,6 @@ class BoxCommand
       qemu_options << "-drive file=#{disk},if=ide,index=#{index+1},media=disk"
     end
 
-    mac_address_base = "52:54:00:12:34:"
     mac_address_index = (options[:mac_index] or 0)
     mac_address = "52:54:00:12:34:#{56+mac_address_index}"
     
