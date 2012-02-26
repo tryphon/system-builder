@@ -21,21 +21,39 @@ list_devices() {
 
 mkdir /boot
 
-for device in `list_devices`; do
-    fs_type=`get_fstype ${device}`
-    echo "check if $device ($fs_type) is the boot image"
+if [ -n "${nfsroot}" ]; then
+  . /scripts/functions
+	configure_networking
 
-    case $fs_type in
-        ext2|ext3|iso9660)
-            mount -r -t $fs_type $device /boot
-            if [ -f "/boot/config.pp" ]; then
-                exit 0
-            else
-                umount /boot
-            fi
-            ;;
-    esac
-done
+	if [ -z "${nfsopts}" ]; then
+		nfsopts="retrans=10"
+	fi
+
+  echo "check if ${nfsroot} provided boot image"
+  nfsmount -o nolock,ro,${nfsopts} ${nfsroot} /boot    
+  if [ -f "/boot/filesystem.squashfs" ]; then
+      exit 0
+  else
+      echo "no image found on nfs"
+      exit 1
+  fi
+else
+    for device in `list_devices`; do
+        fs_type=`get_fstype ${device}`
+        echo "check if $device ($fs_type) is the boot image"
+
+        case $fs_type in
+            ext2|ext3|iso9660)
+                mount -r -t $fs_type $device /boot
+                if [ -f "/boot/config.pp" ]; then
+                    exit 0
+                else
+                    umount /boot
+                fi
+                ;;
+        esac
+    done
+fi
 
 echo "no image found"
 exit 1
