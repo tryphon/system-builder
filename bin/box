@@ -168,11 +168,11 @@ class BoxCommand
     def extlinux
       mount(partition) do |partition_mount|
         if external_extlinux
-          sudo "/usr/sbin/extlinux --install #{partition_mount}"
+          sudo "extlinux --install #{partition_mount}"
         else
           mount("#{partition_mount}/filesystem.squashfs", :loop => true) do |root|
             mount(partition_mount, :bind => true, :target => "#{root}/boot") do
-              chroot root, "/usr/sbin/extlinux --install /boot"
+              chroot root, "extlinux --install /boot"
             end
           end
         end
