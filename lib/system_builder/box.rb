@@ -93,18 +93,8 @@ class SystemBuilder::Box
     "#{dist_dir}/upgrade.tar"
   end
 
-  def upgrade_checksum
-    `sha256sum #{upgrade_file}`.split.first
-  end
-
   def create_latest_file(latest_file = latest_file)
-    File.open(latest_file, "w") do |f|
-      f.puts "name: #{release_name}"
-      f.puts "url: http://download.tryphon.eu/#{name}/#{name}-#{release_number}.tar"
-      f.puts "checksum: #{upgrade_checksum}"
-      f.puts "status_updated_at: #{Time.now}"
-      f.puts "description_url: http://www.tryphon.eu/release/#{release_name}"
-    end
+    SystemBuilder::LatestFile.new(:name => name, :release_number => release_number, :upgrade_file => upgrade_file).create(latest_file)
   end
 
   def latest_file
