@@ -141,6 +141,10 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         end
       end
 
+      desc "Tag and publish latest buildbot #{box.name} release"
+      task :release do
+        SystemBuilder::Publisher.new(box.name).publish
+      end
     end
   end
 
