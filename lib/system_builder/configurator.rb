@@ -32,7 +32,11 @@ module SystemBuilder
 
       unless chroot.image.exists?("/etc/apt/sources.list.d/#{debian_release}-backports.list")
         chroot.image.open("/etc/apt/sources.list.d/#{debian_release}-backports.list") do |f|
-          f.puts "deb http://backports.debian.org/debian-backports #{debian_release}-backports main contrib non-free"
+          if debian_release != :lenny
+            f.puts "deb http://backports.debian.org/debian-backports #{debian_release}-backports main contrib non-free"
+          else
+            f.puts "deb http://archive.debian.org/debian-backports #{debian_release}-backports main contrib non-free"
+          end
         end
 
         chroot.image.open("/etc/apt/preferences") do |f|

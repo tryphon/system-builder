@@ -23,11 +23,19 @@ class SystemBuilder::DebianBoot
     "-o Acquire::http::Proxy='#{apt_proxy}'" if apt_proxy
   end
 
+  def mirror
+    @mirror ||= 
+      if version == :lenny 
+        "http://archive.debian.org/debian"
+      else
+        @@default_mirror
+      end
+  end
+
   def initialize(root)
     @root = root
 
     @version = :lenny
-    @mirror = @@default_mirror
     @architecture = :i386
     @components = ["main"]
     @exclude = []
