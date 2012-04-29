@@ -59,7 +59,15 @@ class SystemBuilder::DiskSquashfsImage
       FileUtils::sudo "mount -o loop,offset=#{boot_fs_offset} #{file} #{mount_dir}"
       yield mount_dir
     ensure
-      FileUtils::sudo "umount #{mount_dir}"
+      retries = 2
+      begin
+        FileUtils::sudo "umount #{mount_dir}"
+      rescue
+        if (retries -= 1) > 0
+          sleep 3
+          retry 
+        end
+      end
     end
   end
 
