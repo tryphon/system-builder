@@ -43,7 +43,7 @@ class SystemBuilder::DiskSquashfsImage
   end
  
   def format_boot_fs
-    loop_device = "/dev/loop0"
+    loop_device = `sudo losetup -f`.strip
     begin
       FileUtils::sudo "losetup -o #{boot_fs_offset} #{loop_device} #{file}"
       FileUtils::sudo "mke2fs -L #{fs_label} -jqF #{loop_device} #{boot_fs_block_size}"
@@ -52,7 +52,7 @@ class SystemBuilder::DiskSquashfsImage
     end
   end
 
-  def mount_boot_fs(mount_dir = "/tmp/mount_boot_fs", &block)
+  def mount_boot_fs(mount_dir = "tmp/mount_boot_fs", &block)
     FileUtils::mkdir_p mount_dir
 
     begin
