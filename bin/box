@@ -89,6 +89,8 @@ class BoxCommand
     memory = (ENV['MEMORY'] or "512")
 
     ENV['QEMU_AUDIO_DRV']='alsa'
+    # ENV['QEMU_ALSA_DAC_DEV'] = 'hw:Loopback,0,0'
+    # ENV['QEMU_ALSA_ADC_DEV'] = 'null'
 
     qemu_command = "qemu -enable-kvm -m #{memory}m -soundhw ac97 #{qemu_options.join(' ')}"
 
@@ -99,11 +101,15 @@ class BoxCommand
   class Cloner
     include SystemTools
 
-    attr_accessor :target, :image, :dry_run, :skip_format, :external_extlinux
+    attr_accessor :target, :image, :dry_run, :skip_format, :external_extlinux, :name
 
     def initialize(options = {}) 
-      options = { :target => "/dev/sdb", :image => "dist/disk" }.merge options
+      options = { :target => "/dev/sdb", :image => default_image }.merge options
       options.each { |k,v| send "#{k}=", v }
+    end
+
+    def default_image
+      name ? "dist/#{name}/disk" : "dist/disk"
     end
 
     def partition
@@ -168,11 +174,11 @@ class BoxCommand
     def extlinux
       mount(partition) do |partition_mount|
         if external_extlinux
-          sudo "extlinux --install #{partition_mount}"
+          sudo "extlinux --install #{partition_mount} && dd if=/usr/lib/syslinux/mbr.bin of=#{target}"
         else
           mount("#{partition_mount}/filesystem.squashfs", :loop => true) do |root|
             mount(partition_mount, :bind => true, :target => "#{root}/boot") do
-              chroot root, "extlinux --install /boot"
+              chroot root, "extlinux --install /boot && dd if=/usr/lib/syslinux/mbr.bin of=#{target}"
             end
           end
         end
@@ -214,7 +220,11 @@ class BoxCommand
     host = options[:host]
     raise "No specified host for upgrade, use --host" unless host
 
-    sh "scp dist/latest.yml dist/upgrade.tar #{host}:/tmp/"
+    options[:image] ||= "dist/upgrade.tar"
+    options[:latest_file] ||= "#{File.dirname(options[:image])}/latest.yml"
+
+    sh "scp #{options[:latest_file]} #{host}:/tmp/"
+    sh "scp #{options[:image]} #{host}:/tmp/upgrade.tar"
     sh "ssh #{host} box-upgrade /tmp/upgrade.tar /tmp/latest.yml"
   end
 
