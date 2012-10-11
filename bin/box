@@ -31,6 +31,12 @@ OptionParser.new do |opts|
           "An numeric index uses to choose mac") { |arg| @options[:mac_index] = arg }
   opts.on("-n", "--dry-run",
           "Dry run mode") { |arg| @options[:dry_run] = true }
+
+  opts.on("-C", "--alsa-capture=<device>", String,
+          "Box alsa capture device") { |arg| @options[:alsa_capture] = arg }
+  opts.on("-P", "--alsa-playback=<device>", String,
+          "Box alsa playback device") { |arg| @options[:alsa_playback] = arg }
+
   opts.on("-h", "--help",
           "Show this help message.") { puts opts; exit }
   opts.parse!(ARGV)
@@ -89,8 +95,10 @@ class BoxCommand
     memory = (ENV['MEMORY'] or "512")
 
     ENV['QEMU_AUDIO_DRV']='alsa'
-    # ENV['QEMU_ALSA_DAC_DEV'] = 'hw:Loopback,0,0'
-    # ENV['QEMU_ALSA_ADC_DEV'] = 'null'
+    ENV['QEMU_ALSA_DAC_DEV'] = options[:alsa_playback] if options[:alsa_playback]
+    ENV['QEMU_ALSA_ADC_DEV'] = options[:alsa_capture] if options[:alsa_capture]
+
+    puts "QEMU_ALSA_DAC_DEV: #{ENV['QEMU_ALSA_DAC_DEV']} - QEMU_ALSA_ADC_DEV: #{ENV['QEMU_ALSA_ADC_DEV']}"
 
     qemu_command = "qemu -enable-kvm -m #{memory}m -soundhw ac97 #{qemu_options.join(' ')}"
 
