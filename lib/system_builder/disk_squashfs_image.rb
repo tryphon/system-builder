@@ -99,6 +99,8 @@ class SystemBuilder::DiskSquashfsImage
     end
     FileUtils.touch file
   end
+  
+  attr_accessor :kernel_options
 
   def install_extlinux_files(options = {})
     root = (options[:root] or "LABEL=#{fs_label}")
@@ -111,7 +113,7 @@ class SystemBuilder::DiskSquashfsImage
           f.puts "LABEL linux"
           f.puts "SAY Now booting #{version} from syslinux ..."
           f.puts "KERNEL /vmlinuz"
-          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs rootdelay=6"
+          f.puts "APPEND ro initrd=/initrd.img boot=local root=/boot/filesystem.squashfs rootflags=loop rootfstype=squashfs rootdelay=6 #{kernel_options}"
         end
       end
     end
