@@ -17,6 +17,8 @@ module SystemBuilder
 
 end
 
+require 'yaml'
+
 require 'system_builder/version'
 require 'system_builder/core_ext'
 require 'system_builder/disk_image'
