@@ -4,7 +4,7 @@ PATH
     system-builder (0.0.26)
 
 GEM
-  remote: http://rubygems.org/
+  remote: https://rubygems.org/
   specs:
     ZenTest (4.5.0)
     autotest (4.4.6)
