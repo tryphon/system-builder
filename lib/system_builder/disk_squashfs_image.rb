@@ -7,7 +7,7 @@ class SystemBuilder::DiskSquashfsImage
 
   def initialize(file)
     @file = file
-    @size = 512.megabytes
+    @size = 4000.megabytes
   end
 
   def create
