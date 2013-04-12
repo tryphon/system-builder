@@ -53,7 +53,7 @@ class SystemBuilder::Box
   def disk_image
     @disk_image ||= SystemBuilder::DiskSquashfsImage.new(disk_file).tap do |image|
       image.boot = boot
-      image.size = 200.megabytes
+      image.size = 4000.megabytes
       image.build_dir = build_dir
     end
     yield @disk_image if block_given?
