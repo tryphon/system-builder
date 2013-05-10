@@ -77,6 +77,8 @@ class BoxCommand
     when "iso"
       qemu_options << "-cdrom #{dist_dir}/iso"
       qemu_options << "--boot order=d"
+    when "net"
+      qemu_options << "--boot order=n"
     else
       qemu_disks << "#{dist_dir}/disk"
     end
@@ -92,13 +94,13 @@ class BoxCommand
     
     qemu_options << "-net nic,macaddr=#{mac_address} -net vde,sock=/var/run/vde2/tap0.ctl"
 
-    memory = (ENV['MEMORY'] or "512")
+    memory = (ENV['MEMORY'] or "800")
 
     ENV['QEMU_AUDIO_DRV']='alsa'
     ENV['QEMU_ALSA_DAC_DEV'] = options[:alsa_playback] if options[:alsa_playback]
     ENV['QEMU_ALSA_ADC_DEV'] = options[:alsa_capture] if options[:alsa_capture]
 
-    puts "QEMU_ALSA_DAC_DEV: #{ENV['QEMU_ALSA_DAC_DEV']} - QEMU_ALSA_ADC_DEV: #{ENV['QEMU_ALSA_ADC_DEV']}"
+    qemu_options << "-monitor telnet:127.0.0.1:#{4444+mac_address_index},server,nowait,nodelay"
 
     qemu_command = "qemu -enable-kvm -m #{memory}m -soundhw ac97 #{qemu_options.join(' ')}"
 
