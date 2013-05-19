@@ -1,8 +1,9 @@
 GIT
   remote: git://projects.tryphon.priv/vmbox
-  revision: f8b08142663eca8c2633082cf4741116e5176590
+  revision: c42d8f45ac82eeefd9c13c518478960ff23d16a8
   specs:
     tryphon-vmbox (0.0.1)
+      json
       qemu
 
 PATH
@@ -20,6 +21,7 @@ GEM
     daemons (1.1.9)
     diff-lcs (1.1.2)
     fakeweb (1.3.0)
+    json (1.8.0)
     qemu (0.0.1)
       daemons
     rake (0.9.2)
