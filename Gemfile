@@ -13,3 +13,5 @@ group :test do
   gem "fakeweb"
   gem "rcov"
 end
+
+gem "tryphon-vmbox", :git => "git://projects.tryphon.priv/vmbox"
