@@ -94,6 +94,42 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         end
       end
 
+      namespace :vm do
+        def vmbox
+          box.vmbox
+        end
+
+        desc "Start box VM"
+        task :start do
+          vmbox.start
+        end
+
+        desc "Reset box VM"
+        task :reset do
+          vmbox.reset
+        end
+
+        desc "Stop box VM"
+        task :stop do
+          vmbox.stop
+        end
+
+        desc "Start and save box VM"
+        task :start_and_save do
+          vmbox.start_and_save
+        end
+
+        desc "Save box VM"
+        task :save do
+          vmbox.save
+        end
+
+        desc "Rollback box VM"
+        task :rollback do
+          vmbox.rollback
+        end
+      end
+
       desc "Clean build and dist directories"
       task :clean do
         unless File.exists?(box.root_file) and system "sudo fuser $PWD/#{box.root_file}"

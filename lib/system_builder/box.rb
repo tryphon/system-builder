@@ -1,3 +1,5 @@
+require 'vmbox'
+
 class SystemBuilder::Box
 
   attr_reader :name
@@ -99,6 +101,10 @@ class SystemBuilder::Box
 
   def latest_file
     "#{dist_dir}/latest.yml"
+  end
+
+  def vmbox
+    @vmbox ||= VMBox.new("streambox")
   end
 
 end
