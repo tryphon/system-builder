@@ -116,7 +116,9 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
 
         desc "Start and save box VM"
         task :start_and_save do
-          vmbox.start_and_save ENV['TIMEOUT']
+          timeout = ENV['TIMEOUT']
+          timeout = timeout.to_i if timeout
+          vmbox.start_and_save timeout
         end
 
         desc "Save box VM"
