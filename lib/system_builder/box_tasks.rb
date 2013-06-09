@@ -16,9 +16,9 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
   def initialize(box, &block)
     init
 
-    @box = 
+    @box =
       if Symbol === box
-        SystemBuilder::Box.new(box) 
+        SystemBuilder::Box.new(box)
       else
         box
       end
@@ -116,7 +116,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
 
         desc "Start and save box VM"
         task :start_and_save do
-          vmbox.start_and_save
+          vmbox.start_and_save ENV['TIMEOUT']
         end
 
         desc "Save box VM"
