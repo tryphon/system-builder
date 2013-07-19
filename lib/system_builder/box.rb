@@ -11,7 +11,7 @@ class SystemBuilder::Box
   def release_number
     @release_number ||= Time.now.strftime('%Y%m%d-%H%M')
   end
-  
+
   def release_name
     @release_name ||= "#{name}-#{release_number}"
   end
@@ -25,7 +25,7 @@ class SystemBuilder::Box
 
   def dist_dir
     named_mode? ? "dist/#{name}" : "dist"
-  end 
+  end
 
   def root_file
     "#{build_dir}/root"
@@ -55,7 +55,7 @@ class SystemBuilder::Box
   def disk_image
     @disk_image ||= SystemBuilder::DiskSquashfsImage.new(disk_file).tap do |image|
       image.boot = boot
-      image.size = 4000.megabytes
+      image.size = 4000000000
       image.build_dir = build_dir
     end
     yield @disk_image if block_given?
