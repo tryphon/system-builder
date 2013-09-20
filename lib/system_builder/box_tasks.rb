@@ -34,8 +34,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
     ["#{ENV['HOME']}/.system_builder.rc", "./local.rb"].each do |conf|
       load conf if File.exists?(conf)
     end
-
-    Dir['tasks/**/*.rake'].each { |t| load t }
+    # Dir['tasks/**/*.rake'].each { |t| load t }
   end
 
   def define
