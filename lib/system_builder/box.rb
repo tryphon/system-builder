@@ -104,7 +104,7 @@ class SystemBuilder::Box
   end
 
   def vmbox
-    @vmbox ||= VMBox.new("streambox")
+    @vmbox ||= VMBox.new(name)
   end
 
 end
