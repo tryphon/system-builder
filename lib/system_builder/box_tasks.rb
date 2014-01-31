@@ -98,6 +98,12 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
           box.vmbox
         end
 
+        def start_and_save
+          timeout = ENV['TIMEOUT']
+          timeout = timeout.to_i if timeout
+          vmbox.start_and_save timeout
+        end
+
         desc "Start box VM"
         task :start do
           vmbox.start
@@ -115,9 +121,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
 
         desc "Start and save box VM"
         task :start_and_save do
-          timeout = ENV['TIMEOUT']
-          timeout = timeout.to_i if timeout
-          vmbox.start_and_save timeout
+          start_and_save
         end
 
         desc "Save box VM"
@@ -128,6 +132,39 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         desc "Rollback box VM"
         task :rollback do
           vmbox.rollback
+        end
+
+        # FIXME : fork qemu and cucumber in the same process
+        # makes unreachable the qemu monitor telnet server (?!)
+        desc "Launch tests in VM (FIXME)"
+        task :test do
+          cucumber_task = Rake::Task['cucumber']
+          if cucumber_task
+            begin
+              puts "Start VM ..."
+              start_and_save
+
+              puts "Run tests ..."
+              cucumber_task.invoke
+            ensure
+              puts "Stop VM"
+              vmbox.stop
+            end
+          else
+            raise "No cucumber task is available"
+          end
+        end
+      end
+
+      namespace :get do
+        desc "Retrieve latest build release"
+        task :latest do
+          release_server = "http://dev.tryphon.priv/dist"
+          latest_release = `wget -q -O - #{release_server}/#{box.name}/latest.yml | sed -n '/^name/ s/name: // p'`.strip
+
+          puts "Download #{latest_release} to dist/disk"
+          sh "wget -q -c -m -P dist/ --no-directories #{release_server}/#{box.name}/#{latest_release}.disk.gz"
+          sh "gunzip -c dist/#{latest_release}.disk.gz > dist/disk"
         end
       end
 
