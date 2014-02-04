@@ -1,4 +1,5 @@
 require 'rake/tasklib'
+require 'qemu'
 
 class SystemBuilder::BoxTasks < Rake::TaskLib
 
@@ -91,6 +92,44 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         task :clean do
           box.boot.clean
         end
+      end
+
+      namespace :storage do
+
+        task :clean do
+          rm Dir["dist/storage*"]
+        end
+
+        def create_disk(name, size, format = "raw")
+          suffix = format == "raw" ? "" : ".#{format}"
+          filename = "dist/#{name}#{suffix}"
+
+          options = { :format => format, :size => size }
+          if options[:format].to_s == "qcow2"
+            options[:options] = { :preallocation => "metadata", :cluster_size => "2M" }
+          end
+
+          QEMU::Image.new(filename, options).create
+        end
+
+        desc "Create storage disk"
+        task :create, [:disk_count, :size, :format] do |t, args|
+          defaults = {
+            :disk_count => 1,
+            :size => ENV.fetch("STORAGE_SIZE", "2000M"),
+            :format => ENV.fetch("STORAGE_FORMAT", "raw"),
+          }
+          args.with_defaults defaults
+
+          disk_count = args.disk_count.to_i
+
+          if disk_count.to_i > 1
+            disk_count.times { |n| create_disk "storage#{n+1}", args.size, args.format }
+          else
+            create_disk "storage", args.size, args.format
+          end
+        end
+
       end
 
       namespace :vm do
