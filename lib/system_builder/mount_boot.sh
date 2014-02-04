@@ -15,8 +15,8 @@ get_fstype() {
 }
 
 list_devices() {
-    # list partitions first
-    (ls /dev/hd*[1-9] /dev/sd*[1-9] /dev/sr[0-9]; ls /dev/hd[a-z] /dev/sd[a-z]) 2> /dev/null
+    # try boot label, list partitions first and then disks
+    (ls /dev/disk/by-label/boot; ls /dev/hd*[1-9] /dev/sd*[1-9] /dev/vd*[1-9] /dev/sr[0-9]; ls /dev/hd[a-z] /dev/sd[a-z] /dev/vd[a-z]) 2> /dev/null
 }
 
 mkdir /boot
@@ -30,7 +30,7 @@ if [ -n "${nfsroot}" ]; then
 	fi
 
   echo "check if ${nfsroot} provided boot image"
-  nfsmount -o nolock,ro,${nfsopts} ${nfsroot} /boot    
+  nfsmount -o nolock,ro,${nfsopts} ${nfsroot} /boot
   if [ -f "/boot/filesystem.squashfs" ]; then
       exit 0
   else
