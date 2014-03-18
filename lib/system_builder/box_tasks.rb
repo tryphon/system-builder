@@ -74,7 +74,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
           ln_s File.expand_path("#{box.root_file}/initrd.img"), "#{box.upgrade_directory}/initrd-#{box.release_name}.img"
           FileUtils::sh "tar -cf #{box.upgrade_file} --dereference -C #{box.upgrade_directory} ."
 
-          box.create_latest_file "#{box.dist_dir}/latest.yml"
+          box.create_latest_file
         end
 
         desc "Create all images (disk, iso and upgrade)"
@@ -236,7 +236,8 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
           cp box.iso_file, "#{target_directory}/#{box.name}-#{release_number}.iso"
           cp box.upgrade_file, "#{target_directory}/#{box.name}-#{release_number}.tar"
 
-          cp box.latest_file, "#{target_directory}/latest.yml"
+          cp box.latest_file, "#{target_directory}/#{box.name}-#{release_number}.yml"
+          ln_sf "#{target_directory}/#{box.name}-#{release_number}.yml", "#{target_directory}/latest.yml"
         end
       end
 
