@@ -104,7 +104,7 @@ class SystemBuilder::Box
   end
 
   def vmbox
-    @vmbox ||= VMBox.new(name)
+    @vmbox ||= VMBox.new(name, :root_dir => Pathname.new(dist_dir))
   end
 
 end
