@@ -7,7 +7,7 @@ module SystemBuilder
       @box_name = box_name
 
       @build_server = "dev.tryphon.priv"
-      @dist_directory = "/var/lib/buildbot/dist"
+      @dist_directory = "/var/www/dist"
       @www_server = "www.tryphon.priv"
       @download_dir = "/var/www/tryphon.eu/download"
     end
@@ -28,9 +28,10 @@ module SystemBuilder
       raise "Select a git commit with COMMIT=... (see buildbot at http://dev.tryphon.priv:8010/builders/#{box_name}/)" unless commit
       puts "Publish last release : #{release_name} (commit #{commit})"
 
-      sh "scp '#{build_server}:#{dist_directory}/#{box_name}/#{release_name}*' #{build_server}:#{dist_directory}/#{box_name}/latest.yml #{www_server}:#{download_dir}/#{box_name}"
-      sh "git tag -a #{release_name} -m 'Release #{release_name}' #{commit}"
-      sh "git push --tags"
+      FileUtils::sh "scp '#{build_server}:#{dist_directory}/#{box_name}/#{release_name}*' #{www_server}:#{download_dir}/#{box_name}"
+      FileUtils::sh "ssh #{www_server} 'cd #{download_dir}/#{box_name} && ln -fs #{release_name}.yml latest.yml'"
+      FileUtils::sh "git tag -a #{release_name} -m 'Release #{release_name}' #{commit}"
+      FileUtils::sh "git push --tags"
     end
   end
 end
