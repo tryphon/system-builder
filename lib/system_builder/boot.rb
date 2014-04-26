@@ -1,5 +1,5 @@
 class SystemBuilder::DebianBoot
-  
+
   attr_accessor :version, :mirror, :architecture
   attr_accessor :exclude, :include, :components
 
@@ -8,12 +8,12 @@ class SystemBuilder::DebianBoot
 
   @@default_mirror = 'http://ftp.debian.org/debian'
   def self.default_mirror=(mirror)
-    @@default_mirror = mirror    
+    @@default_mirror = mirror
   end
 
   @@apt_proxy = nil
   def self.apt_proxy=(proxy)
-    @@apt_proxy = proxy    
+    @@apt_proxy = proxy
   end
   def self.apt_proxy
     @@apt_proxy
@@ -24,8 +24,8 @@ class SystemBuilder::DebianBoot
   end
 
   def mirror
-    @mirror ||= 
-      if version == :lenny 
+    @mirror ||=
+      if version == :lenny
         "http://archive.debian.org/debian"
       else
         @@default_mirror
@@ -42,11 +42,11 @@ class SystemBuilder::DebianBoot
     @include = [ "debian-archive-keyring" ]
 
     # kernel can't be installed by debootstrap
-    @configurators = 
-      [ localhost_configurator, 
-        apt_configurator, 
-        kernel_configurator, 
-        fstab_configurator, 
+    @configurators =
+      [ localhost_configurator,
+        apt_configurator,
+        kernel_configurator,
+        fstab_configurator,
         timezone_configurator,
         resolvconf_configurator,
         policyrc_configurator
@@ -91,13 +91,23 @@ class SystemBuilder::DebianBoot
     end
   end
 
+  attr_accessor :kernel_version
+  def kernel_version
+    @kernel_version ||= "2.6"
+  end
+
   def kernel_configurator
     SystemBuilder::ProcConfigurator.new do |chroot|
       puts "* install kernel"
       chroot.image.open("/etc/kernel-img.conf") do |f|
         f.puts "do_initrd = yes"
       end
-      chroot.apt_install %w{linux-image-2.6-686}
+
+      if kernel_version == "3.2"
+        chroot.apt_install "linux-image-3.2.0-0.bpo.4-686-pae", :target_release => "#{version}-backports"
+      else
+        chroot.apt_install "linux-image-2.6-686"
+      end
     end
   end
 
@@ -126,7 +136,7 @@ class SystemBuilder::DebianBoot
       unless chroot.image.exists?("/etc/resolv.conf")
         puts "* define resolv.conf"
         # Use the same resolv.conf than build machine
-        chroot.image.install "/etc/", "/etc/resolv.conf" 
+        chroot.image.install "/etc/", "/etc/resolv.conf"
       end
     end
   end
@@ -144,6 +154,10 @@ class SystemBuilder::DebianBoot
     attr_reader :boot
     def initialize(boot)
       @boot = boot
+    end
+
+    def version
+      @boot.version
     end
 
     def apt_proxy
@@ -196,8 +210,20 @@ class SystemBuilder::DebianBoot
       end
     end
 
+    def backports_list(chroot)
+      backports_list_file = "/etc/apt/sources.list.d/#{version}-backports.list"
+      return if chroot.image.exists? backports_list_file
+
+      backports_url = version != :lenny ? "http://backports.debian.org/debian-backports" : "http://archive.debian.org/debian-backports"
+
+      chroot.image.open(backports_list_file) do |f|
+        f.puts "deb #{backports_url} #{version}-backports main contrib non-free"
+      end
+    end
+
     def configure(chroot, options = {})
       rewrite_sources_url(chroot)
+      backports_list(chroot)
       update(chroot)
       configure_proxy(chroot)
     end
@@ -205,7 +231,7 @@ class SystemBuilder::DebianBoot
   end
 
   def policyrc_configurator
-    SystemBuilder::ProcConfigurator.new do |chroot|    
+    SystemBuilder::ProcConfigurator.new do |chroot|
       puts "* disable rc services"
       chroot.image.open("/usr/sbin/policy-rc.d") do |f|
         f.puts "exit 101"
@@ -221,9 +247,9 @@ class SystemBuilder::DebianBoot
         chroot.sudo "rm #{apt_confd_proxy_file}"
       end
       puts "* clean apt caches"
-      chroot.sudo "apt-get clean"      
+      chroot.sudo "apt-get clean"
       puts "* autoremove packages"
-      chroot.sudo "apt-get autoremove --yes"      
+      chroot.sudo "apt-get autoremove --yes"
     end
   end
 
@@ -245,12 +271,12 @@ class SystemBuilder::DebianBoot
 
   def debbootstrap_options
     {
-      :arch => architecture,  
+      :arch => architecture,
       :exclude => exclude.join(','),
       :include => include.join(','),
       :variant => :minbase,
       :components => components.join(',')
-    }.collect do |k,v| 
+    }.collect do |k,v|
       ["--#{k}", Array(v).join(',')] unless v.blank?
     end.compact
   end
@@ -266,7 +292,7 @@ class SystemBuilder::DebianBoot
   def image(&block)
     @image ||= Image.new(root)
 
-    if block_given?    
+    if block_given?
       yield @image
     else
       @image
@@ -279,7 +305,7 @@ class SystemBuilder::DebianBoot
   end
 
   class Image
-    
+
     def initialize(root)
       @root = root
     end
@@ -299,11 +325,11 @@ class SystemBuilder::DebianBoot
       FileUtils::sudo "rsync -a #{rsync_options.join(' ')} #{sources.join(' ')} #{expand_path(target)}"
     end
 
-    def open(filename, &block) 
+    def open(filename, &block)
       Tempfile.open(File.basename(filename)) do |f|
         yield f
         f.close
-        
+
         File.chmod 0644, f.path
         install filename, f.path
       end
@@ -330,7 +356,18 @@ class SystemBuilder::DebianBoot
     end
 
     def apt_install(*packages)
-      sudo "apt-get install #{SystemBuilder::DebianBoot.apt_options} --yes --force-yes #{packages.join(' ')}"
+      options = {}
+      if packages.last.is_a?(Hash)
+        options = packages.pop
+      end
+
+      options_cmd_line = options.map do |k,v|
+        part = "--#{k.to_s.gsub('_','-')}"
+        part += "=#{v}" if v != true
+        part
+      end.join(' ')
+
+      sudo "apt-get install #{SystemBuilder::DebianBoot.apt_options} #{options_cmd_line} --yes --force-yes #{packages.join(' ')}"
     end
 
     def cp(*arguments)
@@ -360,5 +397,5 @@ class SystemBuilder::DebianBoot
     end
 
   end
-  
+
 end
