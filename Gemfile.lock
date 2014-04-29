@@ -1,11 +1,12 @@
 GIT
   remote: git://projects.tryphon.priv/vmbox
-  revision: 9ed21c6fb3a84eae6359508734e77abd931ddb9c
+  revision: 3c0a92bc0a7f3a90d47fce4bb4be72570af4e54e
   specs:
     tryphon-vmbox (0.0.1)
-      activesupport
+      activesupport (~> 3.2.1)
       json
-      qemu
+      net-ssh
+      qemu (~> 0.3)
 
 PATH
   remote: .
@@ -17,8 +18,8 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (3.2.13)
-      i18n (= 0.6.1)
+    activesupport (3.2.17)
+      i18n (~> 0.6, >= 0.6.4)
       multi_json (~> 1.0)
     celluloid (0.15.2)
       timers (~> 1.1.0)
@@ -39,8 +40,8 @@ GEM
       thor (>= 0.18.1)
     guard-rspec (1.2.1)
       guard (>= 1.1)
-    i18n (0.6.1)
-    json (1.8.0)
+    i18n (0.6.9)
+    json (1.8.1)
     listen (2.6.1)
       celluloid (>= 0.15.2)
       celluloid-io (>= 0.15.0)
@@ -48,13 +49,14 @@ GEM
       rb-inotify (>= 0.9)
     lumberjack (1.0.4)
     method_source (0.8.2)
-    multi_json (1.7.6)
+    multi_json (1.9.3)
+    net-ssh (2.8.0)
     nio4r (1.0.0)
     pry (0.9.12.6)
       coderay (~> 1.0)
       method_source (~> 0.8)
       slop (~> 3.4)
-    qemu (0.0.1)
+    qemu (0.3)
       daemons
     rake (0.9.2)
     rb-fsevent (0.9.4)
