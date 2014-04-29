@@ -65,13 +65,27 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
           box.nfs_image.create
         end
 
+        def initrd_file
+          initrd_link = File.expand_path("#{box.root_file}/initrd.img")
+
+          unless File.readable?(initrd_link)
+            # Under wheezy, initrd.img is an absolute link like /boot/initrd.img-3.12-0.bpo.1-amd64'"
+            read_initrd_link = `readlink #{initrd_link}`.strip
+            if read_initrd_link =~ %r{^/(.*)$}
+              initrd_link = File.expand_path($1, box.root_file)
+            end
+          end
+
+          initrd_link
+        end
+
         desc "Create upgrade files"
         task :upgrade do
           rm_rf box.upgrade_directory
           mkdir_p box.upgrade_directory
           ln_s File.expand_path("#{box.build_dir}/filesystem.squashfs"), "#{box.upgrade_directory}/filesystem-#{box.release_name}.squashfs"
           ln_s File.expand_path("#{box.root_file}/vmlinuz"), "#{box.upgrade_directory}/vmlinuz-#{box.release_name}"
-          ln_s File.expand_path("#{box.root_file}/initrd.img"), "#{box.upgrade_directory}/initrd-#{box.release_name}.img"
+          ln_s initrd_file, "#{box.upgrade_directory}/initrd-#{box.release_name}.img"
           FileUtils::sh "tar -cf #{box.upgrade_file} --dereference -C #{box.upgrade_directory} ."
 
           box.create_latest_file
