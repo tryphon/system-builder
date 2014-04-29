@@ -96,6 +96,31 @@ class SystemBuilder::DebianBoot
     @kernel_version ||= "2.6"
   end
 
+  def kernel_package_name
+    package_names = Array(kernel_package_names)
+    package_names.grep(kernel_version).first or package_names.first
+  end
+
+  def kernel_architecture
+    architecture == :i386 ? "686" : architecture.to_s
+  end
+
+  def kernel_package_names
+    case version
+    when :lenny
+      "linux-image-2.6-#{kernel_architecture}"
+    when :squeeze
+      ["linux-image-2.6-#{kernel_architecture}"].tap do |names|
+        architecture_with_pae = architecture == :i386 ? "686-pae" : architecture.to_s
+        names << "linux-image-3.2.0-0.bpo.4-#{architecture_with_pae}"
+      end
+    when :wheezy
+      "linux-image-3.12-0.bpo.1-#{kernel_architecture}"
+    else
+      "linux-image-#{kernel_architecture}"
+    end
+  end
+
   def kernel_configurator
     SystemBuilder::ProcConfigurator.new do |chroot|
       puts "* install kernel"
@@ -103,11 +128,12 @@ class SystemBuilder::DebianBoot
         f.puts "do_initrd = yes"
       end
 
-      if kernel_version == "3.2"
-        chroot.apt_install "linux-image-3.2.0-0.bpo.4-686-pae", :target_release => "#{version}-backports"
-      else
-        chroot.apt_install "linux-image-2.6-686"
-      end
+      package_name = kernel_package_name
+
+      options = {}
+      options[:target_release] = "#{version}-backports" if package_name =~ /bpo/
+
+      chroot.apt_install package_name, options
     end
   end
 
@@ -214,7 +240,16 @@ class SystemBuilder::DebianBoot
       backports_list_file = "/etc/apt/sources.list.d/#{version}-backports.list"
       return if chroot.image.exists? backports_list_file
 
-      backports_url = version != :lenny ? "http://backports.debian.org/debian-backports" : "http://archive.debian.org/debian-backports"
+      backports_url =
+        case version
+        when :lenny
+          "http://archive.debian.org/debian-backports"
+        when :squeeze
+          "http://backports.debian.org/debian-backports"
+        else
+          # From wheezy-backports, backports are integrated in debian repositories
+          mirror
+        end
 
       chroot.image.open(backports_list_file) do |f|
         f.puts "deb #{backports_url} #{version}-backports main contrib non-free"
