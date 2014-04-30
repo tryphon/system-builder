@@ -28,7 +28,7 @@ module SystemBuilder
     def configure(chroot, options = {})
       puts "* run puppet configuration"
 
-      chroot.apt_install :puppet
+      chroot.apt_install %w{puppet ruby1.9.1}
       chroot.image.open("/etc/default/puppet") do |f|
         f.puts "START=no"
       end
