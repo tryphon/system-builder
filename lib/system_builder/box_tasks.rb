@@ -111,12 +111,12 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
       namespace :storage do
 
         task :clean do
-          rm Dir["dist/storage*"]
+          rm Dir["#{box.dist_dir}/storage*"]
         end
 
         def create_disk(name, size, format = "raw")
           suffix = format == "raw" ? "" : ".#{format}"
-          filename = "dist/#{name}#{suffix}"
+          filename = "#{box.dist_dir}/#{name}#{suffix}"
 
           options = { :format => format, :size => size }
           if options[:format].to_s == "qcow2"
@@ -215,9 +215,9 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
           release_server = "http://dev.tryphon.priv/dist"
           latest_release = `wget -q -O - #{release_server}/#{box.name}/latest.yml | sed -n '/^name/ s/name: // p'`.strip
 
-          puts "Download #{latest_release} to dist/disk"
-          sh "wget -q -c -m -P dist/ --no-directories #{release_server}/#{box.name}/#{latest_release}.disk.gz"
-          sh "gunzip -c dist/#{latest_release}.disk.gz > dist/disk"
+          puts "Download #{latest_release} to #{box.disk_file}"
+          sh "wget -q -c -m -P #{box.dist_dir}/ --no-directories #{release_server}/#{box.name}/#{latest_release}.disk.gz"
+          sh "gunzip -c #{box.dist_dir}/#{latest_release}.disk.gz > #{box.disk_file}"
         end
       end
 
