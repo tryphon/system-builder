@@ -41,7 +41,7 @@ class SystemBuilder::DiskSquashfsImage
     # Partition must be bootable for syslinux
     FileUtils::sh "echo '#{free_sectors},,L,*' | /sbin/sfdisk --force --no-reread -uS -H16 -S63 #{file}"
   end
- 
+
   def format_boot_fs
     loop_device = `sudo losetup -f`.strip
     begin
@@ -65,7 +65,7 @@ class SystemBuilder::DiskSquashfsImage
       rescue
         if (retries -= 1) > 0
           sleep 3
-          retry 
+          retry
         end
       end
     end
@@ -75,22 +75,22 @@ class SystemBuilder::DiskSquashfsImage
 
   def build_dir
     @build_dir ||= "build"
-  end 
+  end
 
   def squashfs_file
     "#{build_dir}/filesystem.squashfs"
   end
 
   def compress_root_fs
-    FileUtils::sudo "mksquashfs #{boot.root}/ #{squashfs_file} -noappend -e #{boot.root}/boot"
+    FileUtils::sudo "mksquashfs #{boot.root}/ #{squashfs_file} -no-progress -noappend -e #{boot.root}/boot"
     FileUtils::sudo "chown #{ENV['USER']} #{squashfs_file} && chmod +r #{squashfs_file}"
-    
+
     mount_boot_fs do |mount_dir|
       FileUtils::sudo "cp #{squashfs_file} #{mount_dir}/filesystem.squashfs"
     end
     FileUtils.touch file
   end
-  
+
   def sync_boot_fs
     mount_boot_fs do |mount_dir|
       FileUtils::sudo "rsync -a --delete #{boot.root}/boot/ #{mount_dir}/"
@@ -99,7 +99,7 @@ class SystemBuilder::DiskSquashfsImage
     end
     FileUtils.touch file
   end
-  
+
   attr_accessor :kernel_options
 
   def install_extlinux_files(options = {})
@@ -120,7 +120,7 @@ class SystemBuilder::DiskSquashfsImage
   end
 
   def install_extlinux
-    mount_boot_fs("#{boot.root}/boot") do 
+    mount_boot_fs("#{boot.root}/boot") do
       boot.chroot do |chroot|
         chroot.sudo "extlinux --install -H16 -S63 /boot"
       end
@@ -132,7 +132,7 @@ class SystemBuilder::DiskSquashfsImage
     mount_boot_fs do |mount_dir|
       FileUtils::cd("#{mount_dir}") do
         FileUtils::sh"md5sum * |sudo tee MD5SUM"
-      end 
+      end
     end
   end
 

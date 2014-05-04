@@ -24,7 +24,7 @@ class SystemBuilder::IsoSquashfsImage
 
   def build_dir
     @build_dir ||= "build"
-  end 
+  end
 
   def squashfs_file
     "#{build_dir}/filesystem.squashfs"
@@ -32,7 +32,7 @@ class SystemBuilder::IsoSquashfsImage
 
   def compress_root_fs
     unless File.exists?("#{squashfs_file}")
-      FileUtils::sudo "mksquashfs #{boot.root}/ #{squashfs_file} -noappend -e /boot"
+      FileUtils::sudo "mksquashfs #{boot.root}/ #{squashfs_file} -no-progress -noappend -e #{boot.root}/boot"
       FileUtils::sudo "chown #{ENV['USER']} #{squashfs_file} && chmod +r #{squashfs_file}"
     end
   end
@@ -62,5 +62,5 @@ class SystemBuilder::IsoSquashfsImage
     FileUtils::sudo "genisoimage -quiet -R -o #{file} -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -graft-points vmlinuz=#{boot.root}/boot/#{readlink_boot_file('vmlinuz')} initrd.img=#{boot.root}/boot/#{readlink_boot_file('initrd.img')} filesystem.squashfs=#{squashfs_file} #{boot.root}/boot"
     FileUtils::sudo "chown $USER #{file}"
   end
-  
+
 end
