@@ -51,7 +51,7 @@ class SystemBuilder::DebianBoot
         resolvconf_configurator,
         policyrc_configurator
       ]
-    @cleaners = [ apt_cleaner, policyrc_cleaner ]
+    @cleaners = [ apt_cleaner, policyrc_cleaner, tmp_cleaner ]
   end
 
   def create(force = false)
@@ -285,6 +285,9 @@ class SystemBuilder::DebianBoot
       chroot.sudo "apt-get clean"
       puts "* autoremove packages"
       chroot.sudo "apt-get autoremove --yes"
+
+      puts "* Remove apt files"
+      chroot.sudo "find /var/lib/apt/ /var/cache/apt -type f | xargs rm"
     end
   end
 
@@ -292,6 +295,13 @@ class SystemBuilder::DebianBoot
     Proc.new do |chroot|
       puts "* enable rc services"
       chroot.sh "rm /usr/sbin/policy-rc.d"
+    end
+  end
+
+  def tmp_cleaner
+    Proc.new do |chroot|
+      puts "* Clean /tmp"
+      chroot.sh "rm -rf /tmp/*"
     end
   end
 
