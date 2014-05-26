@@ -136,6 +136,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
           args.with_defaults defaults
 
           disk_count = args.disk_count.to_i
+          puts "Disk count: #{disk_count}"
 
           if disk_count.to_i > 1
             disk_count.times { |n| create_disk "storage#{n+1}", args.size, args.format }
