@@ -142,8 +142,11 @@ class SystemBuilder::DebianBoot
       puts "* create fstab"
       chroot.image.open("/etc/fstab") do |f|
         f.puts "LABEL=boot /boot auto defaults,noatime,ro 0 0"
-        %w{/tmp /var/run /var/log /var/lock /var/tmp}.each do |directory|
+        %w{/tmp /var/tmp}.each do |directory|
           f.puts "tmpfs #{directory} tmpfs defaults,noatime 0 0"
+        end
+        %w{/run /var/log}.each do |directory|
+          f.puts "tmpfs #{directory} tmpfs defaults,noatime,mode=0755 0 0"
         end
       end
     end
