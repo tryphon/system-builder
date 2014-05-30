@@ -148,7 +148,7 @@ class SystemBuilder::DebianBoot
         %w{/run /var/log}.each do |directory|
           f.puts "tmpfs #{directory} tmpfs defaults,noatime,mode=0755 0 0"
         end
-      end unless chroot.image.exists?("/etc/fstab")
+      end
     end
   end
 
@@ -382,8 +382,6 @@ class SystemBuilder::DebianBoot
         install filename, f.path
       end
     end
-
-
 
     def expand_path(path)
       File.join(@root,path)
