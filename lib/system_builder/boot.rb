@@ -64,7 +64,7 @@ class SystemBuilder::DebianBoot
   end
 
   def bootstrap
-    unless File.exists?(root)
+    unless ::File.exists?(root)
       FileUtils::mkdir_p root
       FileUtils::sudo "debootstrap", debbootstrap_options, version, root, debbootstrap_url
     end
@@ -139,14 +139,15 @@ class SystemBuilder::DebianBoot
 
   def fstab_configurator
     SystemBuilder::ProcConfigurator.new do |chroot|
-      puts "* create fstab"
-      chroot.image.open("/etc/fstab") do |f|
-        f.puts "LABEL=boot /boot auto defaults,noatime,ro 0 0"
+      puts "* set fstab"
+
+      chroot.image.file("/etc/fstab").tap do |f|
+        f.line "LABEL=boot /boot auto defaults,noatime,ro 0 0", :key => "/boot"
         %w{/tmp /var/tmp}.each do |directory|
-          f.puts "tmpfs #{directory} tmpfs defaults,noatime 0 0"
+          f.line "tmpfs #{directory} tmpfs defaults,noatime 0 0", :key => directory
         end
         %w{/run /var/log}.each do |directory|
-          f.puts "tmpfs #{directory} tmpfs defaults,noatime,mode=0755 0 0"
+          f.line "tmpfs #{directory} tmpfs defaults,noatime,mode=0755 0 0", :key => directory
         end
       end
     end
@@ -210,7 +211,7 @@ class SystemBuilder::DebianBoot
     end
 
     def sources_list(chroot)
-      File.readlines(chroot.image.file("/etc/apt/sources.list")).collect(&:strip)
+      ::File.readlines(chroot.image.file("/etc/apt/sources.list")).collect(&:strip)
     end
 
     def rewrite_sources_url(chroot)
@@ -374,23 +375,74 @@ class SystemBuilder::DebianBoot
     end
 
     def open(filename, &block)
-      Tempfile.open(File.basename(filename)) do |f|
+      Tempfile.open(::File.basename(filename)) do |f|
         yield f
         f.close
 
-        File.chmod 0644, f.path
+        ::File.chmod 0644, f.path
         install filename, f.path
       end
     end
 
     def expand_path(path)
-      File.join(@root,path)
+      ::File.join(@root,path)
     end
     alias_method :file, :expand_path
 
     def exists?(path)
       path = expand_path(path)
-      File.exists?(path) or File.symlink?(path)
+      ::File.exists?(path) or ::File.symlink?(path)
+    end
+
+    def file(path)
+      File.new self, path
+    end
+
+  end
+
+  class File
+
+    attr_accessor :image, :path
+
+    def initialize(image, path)
+      @image, @path = image, path
+    end
+
+    def expanded_path
+      @expanded_path ||= image.expand_path(path)
+    end
+
+    def lines
+      ::File.readlines expanded_path
+    end
+
+    def read
+       ::File.read expanded_path
+    end
+
+    def open(mode = "r", &block)
+      if mode == "r"
+        ::File.open expanded_path, mode, &block
+      else
+        original_stat = ::File.stat(expanded_path)
+        Tempfile.open("systembuilder-file") do |f|
+          f.write read
+          f.close
+
+          ::File.open f.path, mode, &block
+
+          ::File.chmod original_stat.mode, f.path
+          image.install path, f.path
+        end
+      end
+    end
+
+    def line(line, options = {})
+      options = { :key => line }.merge(options)
+      if lines.grep(/#{options[:key]}/).empty?
+        puts "add #{line}"
+        open("a") { |f| f.puts line }
+      end
     end
 
   end
