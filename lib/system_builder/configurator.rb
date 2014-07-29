@@ -28,7 +28,12 @@ module SystemBuilder
     def configure(chroot, options = {})
       puts "* run puppet configuration"
 
-      chroot.apt_install %w{puppet ruby1.9.1}
+      required_packages = %w{puppet}
+      unless config[:debian_release] == :squeeze
+        required_packages << "ruby1.9.1"
+      end
+
+      chroot.apt_install required_packages
       chroot.image.open("/etc/default/puppet") do |f|
         f.puts "START=no"
       end
