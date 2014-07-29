@@ -29,7 +29,9 @@ module SystemBuilder
       puts "* run puppet configuration"
 
       required_packages = %w{puppet}
-      unless config[:debian_release] == :squeeze
+      if config[:debian_release] == :squeeze
+        required_packages << "rubygems"
+      else
         required_packages << "ruby1.9.1"
       end
 
