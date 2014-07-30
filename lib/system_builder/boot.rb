@@ -146,7 +146,11 @@ class SystemBuilder::DebianBoot
         %w{/tmp /var/tmp}.each do |directory|
           f.line "tmpfs #{directory} tmpfs defaults,noatime 0 0", :key => directory
         end
-        %w{/run /var/log}.each do |directory|
+        run_directories = %w{/run /var/log}
+        if version == :squeeze
+          run_directories.concat %w{/var/run /var/lock}
+        end
+        run_directories.each do |directory|
           f.line "tmpfs #{directory} tmpfs defaults,noatime,mode=0755 0 0", :key => directory
         end
       end
