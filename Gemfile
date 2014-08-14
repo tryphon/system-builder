@@ -9,3 +9,4 @@ group :test do
 end
 
 gem "tryphon-vmbox", :git => "git://projects.tryphon.priv/vmbox"
+gem "tryphon-box", :git => "git://projects.tryphon.priv/box"
