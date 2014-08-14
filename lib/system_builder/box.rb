@@ -107,8 +107,17 @@ class SystemBuilder::Box
     "#{dist_dir}/latest.yml"
   end
 
+  @@box_list = %w{streambox playbox pigebox linkbox playbox rivendellallbox rivendellairbox rivendellnasbox soundbox}
+  def default_vmbox_index
+    @@box_list.index name.to_s
+  end
+
+  def vmbox_index
+    ENV['VMBOX_INDEX'].try(:to_i) || default_vmbox_index
+  end
+
   def vmbox
-    @vmbox ||= VMBox.new(name, :root_dir => Pathname.new(dist_dir), :architecture => boot.architecture)
+    @vmbox ||= VMBox.new(name, :root_dir => Pathname.new(dist_dir), :architecture => boot.architecture, :index => vmbox_index)
   end
 
 end
