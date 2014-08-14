@@ -42,8 +42,12 @@ class SystemBuilder::Box
     @boot
   end
 
+  def secret
+    ENV.fetch 'BOX_SECRET', 'secret'
+  end
+
   def puppet_configurator
-    @puppet_configurator ||= SystemBuilder::PuppetConfigurator.new :box_name => name, :release_name => release_name, :debian_release => boot.version, :box_architecture => boot.architecture
+    @puppet_configurator ||= SystemBuilder::PuppetConfigurator.new :box_name => name, :release_name => release_name, :debian_release => boot.version, :box_architecture => boot.architecture, :box_secret => secret
     yield @puppet_configurator if block_given?
     @puppet_configurator
   end
