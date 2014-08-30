@@ -37,7 +37,7 @@ class SystemBuilder::DebianBoot
 
     @version = :lenny
     @architecture = :i386
-    @components = ["main"]
+    @components = %w{main contrib non-free}
     @exclude = []
     @include = [ "debian-archive-keyring" ]
 
