@@ -13,7 +13,11 @@ class SystemBuilder::LatestFile
   end
 
   def upgrade_checksum
-    `sha256sum #{upgrade_file}`.split.first
+    @upgrade_checksum ||= `sha256sum #{upgrade_file}`.split.first
+  end
+
+  def commit
+    @commit ||= `git log -1 --pretty=format:'%H'`
   end
 
   def create(latest_file = latest_file)
@@ -21,6 +25,7 @@ class SystemBuilder::LatestFile
       f.puts "name: #{release_name}"
       f.puts "url: #{release_name}.tar"
       f.puts "checksum: #{upgrade_checksum}"
+      f.puts "commit: #{commit}" unless commit.blank?
       f.puts "status_updated_at: #{Time.now}"
       f.puts "description_url: http://www.tryphon.eu/release/#{release_name}"
     end
