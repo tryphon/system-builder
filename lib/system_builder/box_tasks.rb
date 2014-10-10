@@ -12,6 +12,14 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
     @@multiple_boxes
   end
 
+  @@multiple_architecture = nil
+  def self.multiple_architecture=(multiple_architecture)
+    @@multiple_architecture = multiple_architecture
+  end
+  def self.multiple_architecture?
+    @@multiple_architecture
+  end
+  
   attr_reader :box
 
   def initialize(box, &block)
@@ -25,6 +33,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
       end
 
     @box.named_mode = self.class.multiple_boxes?
+    @box.multi_architecture = self.class.multiple_architecture?
 
     yield @box if block_given?
 
@@ -38,8 +47,14 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
     # Dir['tasks/**/*.rake'].each { |t| load t }
   end
 
+  def box_namespace
+    [box.name].tap do |parts|
+      parts << box.architecture if box.multi_architecture?
+    end.join(':')
+  end
+
   def define
-    namespace box.name do
+    namespace box_namespace do
       desc "Create disk/iso images"
 
       desc "Shortcut for dist:disk task"
@@ -232,27 +247,27 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         FileUtils::sh "rm -rf #{box.dist_dir}/*"
       end
 
-      task :buildbot => [:clean, "dist:all", "buildbot:dist"] do
+      task :ci => [:clean, "dist:all", "ci:dist"] do
         # clean in dependencies is executed only once
         FileUtils::sh "rake #{box.name}:clean"
       end
 
       def latest_release_number
-        YAML.load(IO.read(box.latest_file))["name"].gsub("#{box.name}-","") if File.exists?(box.latest_file)
+        @latest_release_number ||= YAML.load(IO.read(box.latest_file))["name"].gsub("#{box.name}-","") if File.exists?(box.latest_file)
       end
 
-      namespace :buildbot do
+      namespace :ci do
         task :dist do
-          target_directory = (ENV['DIST'] or "#{ENV['HOME']}/dist/#{box.name}")
-          release_number = (latest_release_number or box.release_number)
+          target_directory = (ENV['DIST'] or "#{ENV['HOME']}/dist/#{box.release_dir}")
+          box.release_number = latest_release_number if latest_release_number
 
           mkdir_p target_directory
-          sh "gzip --fast --stdout #{box.disk_file} > #{target_directory}/#{box.name}-#{release_number}.disk.gz"
-          cp box.iso_file, "#{target_directory}/#{box.name}-#{release_number}.iso"
-          cp box.upgrade_file, "#{target_directory}/#{box.name}-#{release_number}.tar"
+          sh "gzip --fast --stdout #{box.disk_file} > #{target_directory}/#{box.release_filename}.disk.gz"
+          cp box.iso_file, "#{target_directory}/#{box.release_filename}.iso"
+          cp box.upgrade_file, "#{target_directory}/#{box.release_filename}.tar"
 
-          cp box.latest_file, "#{target_directory}/#{box.name}-#{release_number}.yml"
-          ln_sf "#{target_directory}/#{box.name}-#{release_number}.yml", "#{target_directory}/latest.yml"
+          cp box.latest_file, "#{target_directory}/#{box.release_filename}.yml"
+          ln_sf "#{target_directory}/#{box.release_filename}.yml", "#{target_directory}/latest.yml"
         end
       end
 
@@ -270,7 +285,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         end
       end
 
-      desc "Tag and publish latest buildbot #{box.name} release"
+      desc "Tag and publish latest ci #{box.name} release"
       task :release do
         SystemBuilder::Publisher.new(box.name).publish
       end

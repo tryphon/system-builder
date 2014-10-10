@@ -42,7 +42,7 @@ module SystemBuilder
 
       unless File.directory?(manifest)
         chroot.image.install "/tmp/puppet.pp", manifest
-        # chmod +r to make file readable for buildbot
+        # chmod +r to make file readable
         chroot.sudo "puppet --color=false tmp/puppet.pp 2>&1 | tee /tmp/puppet.log && chmod +r /tmp/puppet.log"
         process_log_file(chroot.image.expand_path("/tmp/puppet.log"))
       else

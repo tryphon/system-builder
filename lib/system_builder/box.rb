@@ -8,6 +8,7 @@ class SystemBuilder::Box
     @name = name
   end
 
+  attr_accessor :release_number
   def release_number
     @release_number ||= Time.now.strftime('%Y%m%d-%H%M')
   end
@@ -19,22 +20,39 @@ class SystemBuilder::Box
   attr_accessor :named_mode
   alias_method :named_mode?, :named_mode
 
+  def working_directory(type)
+    [].tap do |parts|
+      parts << type.to_s
+      parts << name if named_mode?
+      parts << architecture if multi_architecture?
+    end.join('/')
+  end
+
   def build_dir
-    named_mode? ? "build/#{name}" : "build"
+    working_directory :build
   end
 
   def dist_dir
-    named_mode? ? "dist/#{name}" : "dist"
+    working_directory :dist
   end
 
   def root_file
     "#{build_dir}/root"
   end
 
+  attr_accessor :architecture
+  def architecture
+    @architecture ||= :amd64
+  end
+
+  attr_accessor :multi_architecture
+  alias_method :multi_architecture?, :multi_architecture
+  
   def boot
     @boot ||= SystemBuilder::DebianBoot.new(root_file)
     unless @boot_configurated
       @boot_configurated = true
+      @boot.architecture = architecture
 
       yield @boot if block_given?
       @boot.configurators << puppet_configurator
@@ -99,8 +117,23 @@ class SystemBuilder::Box
     "#{dist_dir}/upgrade.tar"
   end
 
+  def release_dir
+    [].tap do |parts|
+      parts << name
+      parts << architecture if multi_architecture?
+    end.join('/')
+  end
+
+  def release_filename
+    [].tap do |parts|
+      parts << name
+      parts << architecture if multi_architecture?
+      parts << release_number
+    end.join('-')
+  end
+
   def create_latest_file(latest_file = latest_file)
-    SystemBuilder::LatestFile.new(:name => name, :release_number => release_number, :upgrade_file => upgrade_file).create(latest_file)
+    SystemBuilder::LatestFile.new(self).create(latest_file)
   end
 
   def latest_file

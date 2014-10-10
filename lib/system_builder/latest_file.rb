@@ -1,16 +1,12 @@
 class SystemBuilder::LatestFile
 
-  attr_accessor :name, :release_number, :upgrade_file
-
-  def initialize(attributes = {})
-    attributes.each do |k,v|
-      send "#{k}=", v
-    end
+  attr_accessor :box
+  
+  def initialize(box)
+    @box = box
   end
 
-  def release_name
-    @release_name ||= "#{name}-#{release_number}"
-  end
+  delegate :upgrade_file, :release_filename, :release_name, :to => :box
 
   def upgrade_checksum
     @upgrade_checksum ||= `sha256sum #{upgrade_file}`.split.first
@@ -20,10 +16,10 @@ class SystemBuilder::LatestFile
     @commit ||= `git log -1 --pretty=format:'%H'`
   end
 
-  def create(latest_file = latest_file)
+  def create(latest_file)
     File.open(latest_file, "w") do |f|
       f.puts "name: #{release_name}"
-      f.puts "url: #{release_name}.tar"
+      f.puts "url: #{release_filename}.tar"
       f.puts "checksum: #{upgrade_checksum}"
       f.puts "commit: #{commit}" unless commit.blank?
       f.puts "status_updated_at: #{Time.now}"
