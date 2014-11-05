@@ -115,8 +115,8 @@ class SystemBuilder::DebianBoot
         names << "linux-image-3.2.0-0.bpo.4-#{architecture_with_pae}"
       end
     when :wheezy
-      architecture_with_pae = (architecture == :i386 ? "686-pae" : architecture.to_s)      
-      "linux-image-3.12-0.bpo.1-#{architecture_with_pae}"
+      architecture_with_pae = (architecture == :i386 ? "686-pae" : architecture.to_s)
+      "linux-image-3.16-0.bpo.2-#{architecture_with_pae}"
     else
       "linux-image-#{kernel_architecture}"
     end
