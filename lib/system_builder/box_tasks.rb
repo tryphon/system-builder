@@ -238,10 +238,19 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
         desc "Retrieve latest build release"
         task :latest do
           release_server = "http://dev.tryphon.priv/dist"
-          latest_release = `wget -q -O - #{release_server}/#{box.name}/latest.yml | sed -n '/^name/ s/name: // p'`.strip
+          release_directory = box.name.to_s
+          if box.multi_architecture?
+            release_directory += "/#{box.architecture}"
+          end
+          latest_release = `wget -q -O - #{release_server}/#{release_directory}/latest.yml | sed -n '/^name/ s/name: // p'`.strip
+
+          release_filename = latest_release
+          if box.multi_architecture?
+            release_filename.gsub! box.name.to_s, "#{box.name}-#{box.architecture}"
+          end
 
           puts "Download #{latest_release} to #{box.disk_file}"
-          sh "wget -q -c -m -P #{box.dist_dir}/ --no-directories #{release_server}/#{box.name}/#{latest_release}.disk.gz"
+          sh "wget -q -c -m -P #{box.dist_dir}/ --no-directories #{release_server}/#{release_directory}/#{release_filename}.disk.gz"
           sh "gunzip -c #{box.dist_dir}/#{latest_release}.disk.gz > #{box.disk_file}"
         end
       end
