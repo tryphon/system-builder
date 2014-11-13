@@ -19,11 +19,11 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
   def self.multiple_architecture?
     @@multiple_architecture
   end
-  
+
   attr_reader :box
 
   def initialize(box, &block)
-    init
+    self.class.init
 
     @box =
       if Symbol === box
@@ -40,10 +40,15 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
     define
   end
 
-  def init
+  @@initialized = false
+
+  def self.init
+    return if @@initialized
+
     ["#{ENV['HOME']}/.system_builder.rc", "./local.rb"].each do |conf|
       load conf if File.exists?(conf)
     end
+    @@initialized = true
     # Dir['tasks/**/*.rake'].each { |t| load t }
   end
 
@@ -173,6 +178,10 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
           vmbox.start_and_save timeout
         end
 
+        task :inspect do
+          puts vmbox.inspect
+        end
+
         desc "Start box VM"
         task :start do
           vmbox.start
@@ -289,6 +298,74 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
       task :release do
         SystemBuilder::Publisher.new(box.name).publish
       end
+    end
+  end
+
+end
+
+class SystemBuilder::MultiArchBoxTasks < Rake::TaskLib
+
+  attr_accessor :name, :architectures
+
+  def initialize(name, architectures = [:amd64, :i386], &block)
+    @name, @architectures = name, architectures
+
+    SystemBuilder::BoxTasks.multiple_architecture = true
+
+    architectures.each do |architecture|
+      SystemBuilder::BoxTasks.new(name) do |box|
+        box.architecture = architecture
+        yield box if block_given?
+      end
+    end
+
+    both_tasks "clean", "dist", "dist:all"
+    default_architecture_tasks "get:latest", "vm:start", "vm:stop", "vm:start_and_save"
+
+    storage_task
+    ci_task
+  end
+
+  def default_architecture
+    @default_architecture ||= architectures.first
+  end
+
+  def default_architecture_task(task)
+    desc "#{task} by using #{default_architecture}"
+    task "#{name}:#{task}" => "#{name}:#{default_architecture}:#{task}"
+  end
+
+  def default_architecture_tasks(*tasks)
+    tasks.flatten.each { |task| default_architecture_task task }
+  end
+
+  def both_task(task)
+    desc "#{task} all architectures"
+    architectures.each do |architecture|
+      task "#{name}:#{task}" => "#{name}:#{architecture}:#{task}"
+    end
+  end
+
+  def both_tasks(*tasks)
+    tasks.flatten.each { |task| both_task task }
+  end
+
+  def storage_task
+    desc "Create storage disk by using #{default_architecture}"
+    task "#{name}:storage:create", [:disk_count, :size, :format] do |t, args|
+      Rake::Task["#{name}:#{default_architecture}:storage:create"].invoke(*args.values)
+    end
+  end
+
+  def ci_task
+    desc "Run continuous integration tasks (spec, ...)"
+    task :ci => "#{name}:ci"
+
+    # clean and dist all architectures
+    task "#{name}:ci" => ["#{name}:clean", "#{name}:dist:all"]
+    # before publishing releases
+    architectures.each do |architecture|
+      task "#{name}:ci" => "#{name}:#{architecture}:ci:dist"
     end
   end
 

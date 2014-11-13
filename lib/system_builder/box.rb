@@ -29,11 +29,11 @@ class SystemBuilder::Box
   end
 
   def build_dir
-    working_directory :build
+    @build_dir ||= working_directory :build
   end
 
   def dist_dir
-    working_directory :dist
+    @dist_dir ||= working_directory :dist
   end
 
   def root_file
@@ -47,7 +47,7 @@ class SystemBuilder::Box
 
   attr_accessor :multi_architecture
   alias_method :multi_architecture?, :multi_architecture
-  
+
   def boot
     @boot ||= SystemBuilder::DebianBoot.new(root_file)
     unless @boot_configurated
