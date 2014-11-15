@@ -4,7 +4,8 @@ require 'system_builder/box_tasks'
 module SystemBuilder
 
   def self.define_tasks(*arguments, &block)
-    Dir['tasks/**/*.rake'].each { |t| load t }
+    rake_files = Dir["#{File.expand_path('tasks')}/**/*.rake"]
+    rake_files.each { |t| load t }
 
     options = Hash === arguments.last ? arguments.pop : {}
     names = arguments
