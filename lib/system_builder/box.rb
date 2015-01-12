@@ -10,7 +10,17 @@ class SystemBuilder::Box
 
   attr_accessor :release_number
   def release_number
-    @release_number ||= Time.now.strftime('%Y%m%d-%H%M')
+    @release_number ||= (external_release_number or self.class.default_release_number)
+  end
+
+  def external_release_number
+    if env_release = ENV['BOX_RELEASE_NUMBER'] and env_release =~ /^\d{8}-\d{4}$/
+      env_release
+    end
+  end
+
+  def self.default_release_number
+    Time.now.strftime('%Y%m%d-%H%M')
   end
 
   def release_name
