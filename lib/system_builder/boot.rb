@@ -101,22 +101,15 @@ class SystemBuilder::DebianBoot
     package_names.grep(kernel_version).first or package_names.first
   end
 
+  attr_accessor :kernel_architecture
   def kernel_architecture
-    architecture == :i386 ? "686" : architecture.to_s
+    @kernel_architecture ||= (architecture == :i386 ? "686-pae" : architecture.to_s)
   end
 
   def kernel_package_names
     case version
-    when :lenny
-      "linux-image-2.6-#{kernel_architecture}"
-    when :squeeze
-      ["linux-image-2.6-#{kernel_architecture}"].tap do |names|
-        architecture_with_pae = architecture == :i386 ? "686-pae" : architecture.to_s
-        names << "linux-image-3.2.0-0.bpo.4-#{architecture_with_pae}"
-      end
     when :wheezy
-      architecture_with_pae = (architecture == :i386 ? "686-pae" : architecture.to_s)
-      "linux-image-3.16-0.bpo.2-#{architecture_with_pae}"
+      "linux-image-3.16.0-0.bpo.4-#{kernel_architecture}"
     else
       "linux-image-#{kernel_architecture}"
     end
