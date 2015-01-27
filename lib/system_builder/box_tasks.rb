@@ -328,7 +328,7 @@ class SystemBuilder::BoxTasks < Rake::TaskLib
 
       desc "Tag and publish latest ci #{box.name} release"
       task :release do
-        SystemBuilder::Publisher.new(box.name).publish
+        SystemBuilder::Publisher.new(box).publish
       end
     end
   end
@@ -351,7 +351,7 @@ class SystemBuilder::MultiArchBoxTasks < Rake::TaskLib
       end
     end
 
-    both_tasks "clean", "dist", "dist:all"
+    both_tasks "clean", "dist", "dist:all", "release"
     default_architecture_tasks "get:latest", "vm:start", "vm:stop", "vm:start_and_save"
 
     storage_task
